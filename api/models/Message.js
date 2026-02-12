@@ -5,6 +5,19 @@ const { Message } = require('~/db/models');
 
 const idSchema = z.string().uuid();
 
+// In-memory store for messages to avoid saving to MongoDB
+const messageStore = new Map();
+
+// Cleanup old messages every 10 minutes to prevent memory leaks
+setInterval(() => {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  for (const [id, msg] of messageStore.entries()) {
+    if (new Date(msg.updatedAt) < oneHourAgo) {
+      messageStore.delete(id);
+    }
+  }
+}, 10 * 60 * 1000);
+
 /**
  * Saves a message in the database.
  *
@@ -48,39 +61,17 @@ async function saveMessage(req, params, metadata) {
   }
 
   try {
+    const messageId = params.newMessageId || params.messageId;
     const update = {
       ...params,
       user: req.user.id,
-      messageId: params.newMessageId || params.messageId,
+      messageId,
+      createdAt: params.createdAt || new Date(),
+      updatedAt: new Date(),
     };
 
-    if (req?.body?.isTemporary) {
-      try {
-        const appConfig = req.config;
-        update.expiredAt = createTempChatExpirationDate(appConfig?.interfaceConfig);
-      } catch (err) {
-        logger.error('Error creating temporary chat expiration date:', err);
-        logger.info(`---\`saveMessage\` context: ${metadata?.context}`);
-        update.expiredAt = null;
-      }
-    } else {
-      update.expiredAt = null;
-    }
-
-    if (update.tokenCount != null && isNaN(update.tokenCount)) {
-      logger.warn(
-        `Resetting invalid \`tokenCount\` for message \`${params.messageId}\`: ${update.tokenCount}`,
-      );
-      logger.info(`---\`saveMessage\` context: ${metadata?.context}`);
-      update.tokenCount = 0;
-    }
-    const message = await Message.findOneAndUpdate(
-      { messageId: params.messageId, user: req.user.id },
-      update,
-      { upsert: true, new: true },
-    );
-
-    return message.toObject();
+    messageStore.set(messageId, update);
+    return update;
   } catch (err) {
     logger.error('Error saving message:', err);
     logger.info(`---\`saveMessage\` context: ${metadata?.context}`);
@@ -135,22 +126,15 @@ async function saveMessage(req, params, metadata) {
  * @returns {Promise<Object>} The result of the bulk write operation.
  * @throws {Error} If there is an error in saving messages in bulk.
  */
-async function bulkSaveMessages(messages, overrideTimestamp = false) {
-  try {
-    const bulkOps = messages.map((message) => ({
-      updateOne: {
-        filter: { messageId: message.messageId },
-        update: message,
-        timestamps: !overrideTimestamp,
-        upsert: true,
-      },
-    }));
-    const result = await Message.bulkWrite(bulkOps);
-    return result;
-  } catch (err) {
-    logger.error('Error saving messages in bulk:', err);
-    throw err;
+async function bulkSaveMessages(messages) {
+  for (const message of messages) {
+    messageStore.set(message.messageId, {
+      ...message,
+      createdAt: message.createdAt || new Date(),
+      updatedAt: new Date(),
+    });
   }
+  return { nInserted: messages.length };
 }
 
 /**
@@ -176,25 +160,18 @@ async function recordMessage({
   parentMessageId,
   ...rest
 }) {
-  try {
-    // No parsing of convoId as may use threadId
-    const message = {
-      user,
-      endpoint,
-      messageId,
-      conversationId,
-      parentMessageId,
-      ...rest,
-    };
-
-    return await Message.findOneAndUpdate({ user, messageId }, message, {
-      upsert: true,
-      new: true,
-    });
-  } catch (err) {
-    logger.error('Error recording message:', err);
-    throw err;
-  }
+  const message = {
+    user,
+    endpoint,
+    messageId,
+    conversationId,
+    parentMessageId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...rest,
+  };
+  messageStore.set(messageId, message);
+  return message;
 }
 
 /**
@@ -211,7 +188,12 @@ async function recordMessage({
  */
 async function updateMessageText(req, { messageId, text }) {
   try {
-    await Message.updateOne({ messageId, user: req.user.id }, { text });
+    const existing = messageStore.get(messageId);
+    if (existing && existing.user === req.user.id) {
+      existing.text = text;
+      existing.updatedAt = new Date();
+      messageStore.set(messageId, existing);
+    }
   } catch (err) {
     logger.error('Error updating message text:', err);
     throw err;
@@ -236,38 +218,15 @@ async function updateMessageText(req, { messageId, text }) {
  * @returns {Promise<TMessage>} The updated message document.
  * @throws {Error} If there is an error in updating the message or if the message is not found.
  */
-async function updateMessage(req, message, metadata) {
-  try {
-    const { messageId, ...update } = message;
-    const updatedMessage = await Message.findOneAndUpdate(
-      { messageId, user: req.user.id },
-      update,
-      {
-        new: true,
-      },
-    );
-
-    if (!updatedMessage) {
-      throw new Error('Message not found or user not authorized.');
-    }
-
-    return {
-      messageId: updatedMessage.messageId,
-      conversationId: updatedMessage.conversationId,
-      parentMessageId: updatedMessage.parentMessageId,
-      sender: updatedMessage.sender,
-      text: updatedMessage.text,
-      isCreatedByUser: updatedMessage.isCreatedByUser,
-      tokenCount: updatedMessage.tokenCount,
-      feedback: updatedMessage.feedback,
-    };
-  } catch (err) {
-    logger.error('Error updating message:', err);
-    if (metadata && metadata?.context) {
-      logger.info(`---\`updateMessage\` context: ${metadata.context}`);
-    }
-    throw err;
+async function updateMessage(req, message) {
+  const { messageId, ...update } = message;
+  const existing = messageStore.get(messageId);
+  if (!existing) {
+    throw new Error('Message not found');
   }
+  const updated = { ...existing, ...update, updatedAt: new Date() };
+  messageStore.set(messageId, updated);
+  return updated;
 }
 
 /**
@@ -284,13 +243,17 @@ async function updateMessage(req, message, metadata) {
  */
 async function deleteMessagesSince(req, { messageId, conversationId }) {
   try {
-    const message = await Message.findOne({ messageId, user: req.user.id }).lean();
+    const message = messageStore.get(messageId);
 
-    if (message) {
-      const query = Message.find({ conversationId, user: req.user.id });
-      return await query.deleteMany({
-        createdAt: { $gt: message.createdAt },
-      });
+    if (message && message.user === req.user.id) {
+      let count = 0;
+      for (const [id, msg] of messageStore.entries()) {
+        if (msg.conversationId === conversationId && msg.user === req.user.id && new Date(msg.createdAt) > new Date(message.createdAt)) {
+          messageStore.delete(id);
+          count++;
+        }
+      }
+      return count;
     }
     return undefined;
   } catch (err) {
@@ -308,13 +271,25 @@ async function deleteMessagesSince(req, { messageId, conversationId }) {
  * @returns {Promise<TMessage[]>} The messages that match the filter criteria.
  * @throws {Error} If there is an error in retrieving messages.
  */
-async function getMessages(filter, select) {
+async function getMessages(filter) {
   try {
-    if (select) {
-      return await Message.find(filter).select(select).sort({ createdAt: 1 }).lean();
-    }
+    const messages = Array.from(messageStore.values()).filter((msg) => {
+      for (const key in filter) {
+        if (filter[key] !== msg[key]) {
+          // Simplified matching for now, doesn't handle $in, etc.
+          if (typeof filter[key] === 'object' && filter[key] !== null) {
+             if (filter[key].$in && Array.isArray(filter[key].$in)) {
+               if (!filter[key].$in.includes(msg[key])) return false;
+               continue;
+             }
+          }
+          if (msg[key] !== filter[key]) return false;
+        }
+      }
+      return true;
+    });
 
-    return await Message.find(filter).sort({ createdAt: 1 }).lean();
+    return messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
   } catch (err) {
     logger.error('Error getting messages:', err);
     throw err;
@@ -331,10 +306,11 @@ async function getMessages(filter, select) {
  */
 async function getMessage({ user, messageId }) {
   try {
-    return await Message.findOne({
-      user,
-      messageId,
-    }).lean();
+    const msg = messageStore.get(messageId);
+    if (msg && msg.user === user) {
+      return msg;
+    }
+    return null;
   } catch (err) {
     logger.error('Error getting message:', err);
     throw err;
@@ -352,7 +328,29 @@ async function getMessage({ user, messageId }) {
  */
 async function deleteMessages(filter) {
   try {
-    return await Message.deleteMany(filter);
+    let count = 0;
+    for (const [id, msg] of messageStore.entries()) {
+      let match = true;
+      for (const key in filter) {
+        if (filter[key] !== msg[key]) {
+          // simplified matching
+          if (typeof filter[key] === 'object' && filter[key] !== null && filter[key].$in) {
+            if (!filter[key].$in.includes(msg[key])) {
+              match = false;
+              break;
+            }
+            continue;
+          }
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        messageStore.delete(id);
+        count++;
+      }
+    }
+    return { deletedCount: count };
   } catch (err) {
     logger.error('Error deleting messages:', err);
     throw err;

@@ -45,16 +45,6 @@ export default function ExportAndShareMenu({
 
   const dropdownItems: t.MenuItemProps[] = [
     {
-      label: localize('com_ui_share'),
-      onClick: shareHandler,
-      icon: <Share2 className="icon-md mr-2 text-text-secondary" />,
-      show: isSharedButtonEnabled,
-      /** NOTE: THE FOLLOWING PROPS ARE REQUIRED FOR MENU ITEMS THAT OPEN DIALOGS */
-      hideOnClick: false,
-      ref: shareButtonRef,
-      render: (props) => <button {...props} />,
-    },
-    {
       label: localize('com_endpoint_export'),
       onClick: exportHandler,
       icon: <Upload className="icon-md mr-2 text-text-secondary" />,
@@ -76,14 +66,14 @@ export default function ExportAndShareMenu({
         setIsOpen={setIsPopoverActive}
         trigger={
           <TooltipAnchor
-            description={localize('com_endpoint_export_share')}
+            description={localize('com_endpoint_export')}
             render={
               <Ariakit.MenuButton
                 id="export-menu-button"
                 aria-label="Export options"
                 className="inline-flex size-10 flex-shrink-0 items-center justify-center rounded-xl border border-border-light bg-presentation text-text-primary transition-all ease-in-out hover:bg-surface-tertiary disabled:pointer-events-none disabled:opacity-50 radix-state-open:bg-surface-tertiary"
               >
-                <Share2
+                <Upload
                   className="icon-lg text-text-primary"
                   aria-hidden="true"
                   focusable="false"
@@ -101,12 +91,6 @@ export default function ExportAndShareMenu({
         conversation={conversation}
         triggerRef={exportButtonRef}
         aria-label={localize('com_ui_export_convo_modal')}
-      />
-      <ShareButton
-        triggerRef={shareButtonRef}
-        conversationId={conversation.conversationId ?? ''}
-        open={showShareDialog}
-        onOpenChange={setShowShareDialog}
       />
     </>
   );

@@ -26,6 +26,7 @@ export function TemporaryChat() {
   );
 
   if (
+    true ||
     (Array.isArray(conversation?.messages) && conversation.messages.length >= 1) ||
     isSubmitting
   ) {

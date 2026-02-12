@@ -3,6 +3,19 @@ const { createTempChatExpirationDate } = require('@librechat/api');
 const { getMessages, deleteMessages } = require('./Message');
 const { Conversation } = require('~/db/models');
 
+// In-memory store for conversations
+const conversationStore = new Map();
+
+// Cleanup old conversations every 10 minutes to prevent memory leaks
+setInterval(() => {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  for (const [id, convo] of conversationStore.entries()) {
+    if (new Date(convo.updatedAt) < oneHourAgo) {
+      conversationStore.delete(id);
+    }
+  }
+}, 10 * 60 * 1000);
+
 /**
  * Searches for a conversation by conversationId and returns a lean document with only conversationId and user.
  * @param {string} conversationId - The conversation's ID.
@@ -10,7 +23,7 @@ const { Conversation } = require('~/db/models');
  */
 const searchConversation = async (conversationId) => {
   try {
-    return await Conversation.findOne({ conversationId }, 'conversationId user').lean();
+    return conversationStore.get(conversationId);
   } catch (error) {
     logger.error('[searchConversation] Error searching conversation', error);
     throw new Error('Error searching conversation');
@@ -25,7 +38,11 @@ const searchConversation = async (conversationId) => {
  */
 const getConvo = async (user, conversationId) => {
   try {
-    return await Conversation.findOne({ user, conversationId }).lean();
+    const convo = conversationStore.get(conversationId);
+    if (convo && convo.user === user) {
+      return convo;
+    }
+    return null;
   } catch (error) {
     logger.error('[getConvo] Error getting single conversation', error);
     throw new Error('Error getting single conversation');
@@ -34,26 +51,17 @@ const getConvo = async (user, conversationId) => {
 
 const deleteNullOrEmptyConversations = async () => {
   try {
-    const filter = {
-      $or: [
-        { conversationId: null },
-        { conversationId: '' },
-        { conversationId: { $exists: false } },
-      ],
-    };
-
-    const result = await Conversation.deleteMany(filter);
-
-    // Delete associated messages
-    const messageDeleteResult = await deleteMessages(filter);
-
-    logger.info(
-      `[deleteNullOrEmptyConversations] Deleted ${result.deletedCount} conversations and ${messageDeleteResult.deletedCount} messages`,
-    );
+    let count = 0;
+    for (const [id, convo] of conversationStore.entries()) {
+      if (!convo.conversationId) {
+        conversationStore.delete(id);
+        count++;
+      }
+    }
 
     return {
-      conversations: result,
-      messages: messageDeleteResult,
+      conversations: { deletedCount: count },
+      messages: { deletedCount: 0 },
     };
   } catch (error) {
     logger.error('[deleteNullOrEmptyConversations] Error deleting conversations', error);
@@ -68,7 +76,7 @@ const deleteNullOrEmptyConversations = async () => {
  */
 const getConvoFiles = async (conversationId) => {
   try {
-    return (await Conversation.findOne({ conversationId }, 'files').lean())?.files ?? [];
+    return conversationStore.get(conversationId)?.files ?? [];
   } catch (error) {
     logger.error('[getConvoFiles] Error getting conversation files', error);
     throw new Error('Error getting conversation files');
@@ -92,43 +100,17 @@ module.exports = {
         logger.debug(`[saveConvo] ${metadata.context}`);
       }
 
-      const messages = await getMessages({ conversationId }, '_id');
-      const update = { ...convo, messages, user: req.user.id };
+      const targetId = newConversationId || conversationId;
+      const update = {
+        ...convo,
+        conversationId: targetId,
+        user: req.user.id,
+        updatedAt: new Date(),
+        createdAt: convo.createdAt || new Date(),
+      };
 
-      if (newConversationId) {
-        update.conversationId = newConversationId;
-      }
-
-      if (req?.body?.isTemporary) {
-        try {
-          const appConfig = req.config;
-          update.expiredAt = createTempChatExpirationDate(appConfig?.interfaceConfig);
-        } catch (err) {
-          logger.error('Error creating temporary chat expiration date:', err);
-          logger.info(`---\`saveConvo\` context: ${metadata?.context}`);
-          update.expiredAt = null;
-        }
-      } else {
-        update.expiredAt = null;
-      }
-
-      /** @type {{ $set: Partial<TConversation>; $unset?: Record<keyof TConversation, number> }} */
-      const updateOperation = { $set: update };
-      if (metadata && metadata.unsetFields && Object.keys(metadata.unsetFields).length > 0) {
-        updateOperation.$unset = metadata.unsetFields;
-      }
-
-      /** Note: the resulting Model object is necessary for Meilisearch operations */
-      const conversation = await Conversation.findOneAndUpdate(
-        { conversationId, user: req.user.id },
-        updateOperation,
-        {
-          new: true,
-          upsert: true,
-        },
-      );
-
-      return conversation.toObject();
+      conversationStore.set(targetId, update);
+      return update;
     } catch (error) {
       logger.error('[saveConvo] Error saving conversation', error);
       if (metadata && metadata?.context) {
@@ -138,175 +120,20 @@ module.exports = {
     }
   },
   bulkSaveConvos: async (conversations) => {
-    try {
-      const bulkOps = conversations.map((convo) => ({
-        updateOne: {
-          filter: { conversationId: convo.conversationId, user: convo.user },
-          update: convo,
-          upsert: true,
-          timestamps: false,
-        },
-      }));
-
-      const result = await Conversation.bulkWrite(bulkOps);
-      return result;
-    } catch (error) {
-      logger.error('[bulkSaveConvos] Error saving conversations in bulk', error);
-      throw new Error('Failed to save conversations in bulk.');
-    }
-  },
-  getConvosByCursor: async (
-    user,
-    {
-      cursor,
-      limit = 25,
-      isArchived = false,
-      tags,
-      search,
-      sortBy = 'updatedAt',
-      sortDirection = 'desc',
-    } = {},
-  ) => {
-    const filters = [{ user }];
-    if (isArchived) {
-      filters.push({ isArchived: true });
-    } else {
-      filters.push({ $or: [{ isArchived: false }, { isArchived: { $exists: false } }] });
-    }
-
-    if (Array.isArray(tags) && tags.length > 0) {
-      filters.push({ tags: { $in: tags } });
-    }
-
-    filters.push({ $or: [{ expiredAt: null }, { expiredAt: { $exists: false } }] });
-
-    if (search) {
-      try {
-        const meiliResults = await Conversation.meiliSearch(search, { filter: `user = "${user}"` });
-        const matchingIds = Array.isArray(meiliResults.hits)
-          ? meiliResults.hits.map((result) => result.conversationId)
-          : [];
-        if (!matchingIds.length) {
-          return { conversations: [], nextCursor: null };
-        }
-        filters.push({ conversationId: { $in: matchingIds } });
-      } catch (error) {
-        logger.error('[getConvosByCursor] Error during meiliSearch', error);
-        throw new Error('Error during meiliSearch');
-      }
-    }
-
-    const validSortFields = ['title', 'createdAt', 'updatedAt'];
-    if (!validSortFields.includes(sortBy)) {
-      throw new Error(
-        `Invalid sortBy field: ${sortBy}. Must be one of ${validSortFields.join(', ')}`,
-      );
-    }
-    const finalSortBy = sortBy;
-    const finalSortDirection = sortDirection === 'asc' ? 'asc' : 'desc';
-
-    let cursorFilter = null;
-    if (cursor) {
-      try {
-        const decoded = JSON.parse(Buffer.from(cursor, 'base64').toString());
-        const { primary, secondary } = decoded;
-        const primaryValue = finalSortBy === 'title' ? primary : new Date(primary);
-        const secondaryValue = new Date(secondary);
-        const op = finalSortDirection === 'asc' ? '$gt' : '$lt';
-
-        cursorFilter = {
-          $or: [
-            { [finalSortBy]: { [op]: primaryValue } },
-            {
-              [finalSortBy]: primaryValue,
-              updatedAt: { [op]: secondaryValue },
-            },
-          ],
-        };
-      } catch (err) {
-        logger.warn('[getConvosByCursor] Invalid cursor format, starting from beginning');
-      }
-      if (cursorFilter) {
-        filters.push(cursorFilter);
-      }
-    }
-
-    const query = filters.length === 1 ? filters[0] : { $and: filters };
-
-    try {
-      const sortOrder = finalSortDirection === 'asc' ? 1 : -1;
-      const sortObj = { [finalSortBy]: sortOrder };
-
-      if (finalSortBy !== 'updatedAt') {
-        sortObj.updatedAt = sortOrder;
-      }
-
-      const convos = await Conversation.find(query)
-        .select(
-          'conversationId endpoint title createdAt updatedAt user model agent_id assistant_id spec iconURL',
-        )
-        .sort(sortObj)
-        .limit(limit + 1)
-        .lean();
-
-      let nextCursor = null;
-      if (convos.length > limit) {
-        convos.pop(); // Remove extra item used to detect next page
-        // Create cursor from the last RETURNED item (not the popped one)
-        const lastReturned = convos[convos.length - 1];
-        const primaryValue = lastReturned[finalSortBy];
-        const primaryStr = finalSortBy === 'title' ? primaryValue : primaryValue.toISOString();
-        const secondaryStr = lastReturned.updatedAt.toISOString();
-        const composite = { primary: primaryStr, secondary: secondaryStr };
-        nextCursor = Buffer.from(JSON.stringify(composite)).toString('base64');
-      }
-
-      return { conversations: convos, nextCursor };
-    } catch (error) {
-      logger.error('[getConvosByCursor] Error getting conversations', error);
-      throw new Error('Error getting conversations');
-    }
-  },
-  getConvosQueried: async (user, convoIds, cursor = null, limit = 25) => {
-    try {
-      if (!convoIds?.length) {
-        return { conversations: [], nextCursor: null, convoMap: {} };
-      }
-
-      const conversationIds = convoIds.map((convo) => convo.conversationId);
-
-      const results = await Conversation.find({
-        user,
-        conversationId: { $in: conversationIds },
-        $or: [{ expiredAt: { $exists: false } }, { expiredAt: null }],
-      }).lean();
-
-      results.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-
-      let filtered = results;
-      if (cursor && cursor !== 'start') {
-        const cursorDate = new Date(cursor);
-        filtered = results.filter((convo) => new Date(convo.updatedAt) < cursorDate);
-      }
-
-      const limited = filtered.slice(0, limit + 1);
-      let nextCursor = null;
-      if (limited.length > limit) {
-        limited.pop(); // Remove extra item used to detect next page
-        // Create cursor from the last RETURNED item (not the popped one)
-        nextCursor = limited[limited.length - 1].updatedAt.toISOString();
-      }
-
-      const convoMap = {};
-      limited.forEach((convo) => {
-        convoMap[convo.conversationId] = convo;
+    for (const convo of conversations) {
+      conversationStore.set(convo.conversationId, {
+        ...convo,
+        updatedAt: new Date(),
+        createdAt: convo.createdAt || new Date(),
       });
-
-      return { conversations: limited, nextCursor, convoMap };
-    } catch (error) {
-      logger.error('[getConvosQueried] Error getting conversations', error);
-      throw new Error('Error fetching conversations');
     }
+    return { nInserted: conversations.length };
+  },
+  getConvosByCursor: async () => {
+    return { conversations: [], nextCursor: null };
+  },
+  getConvosQueried: async () => {
+    return { conversations: [], nextCursor: null, convoMap: {} };
   },
   getConvo,
   /* chore: this method is not properly error handled */
@@ -344,21 +171,30 @@ module.exports = {
    */
   deleteConvos: async (user, filter) => {
     try {
-      const userFilter = { ...filter, user };
-      const conversations = await Conversation.find(userFilter).select('conversationId');
-      const conversationIds = conversations.map((c) => c.conversationId);
-
-      if (!conversationIds.length) {
-        throw new Error('Conversation not found or already deleted.');
+      let count = 0;
+      const conversationIds = [];
+      for (const [id, convo] of conversationStore.entries()) {
+        if (convo.user === user) {
+          let match = true;
+          for (const key in filter) {
+            if (convo[key] !== filter[key]) {
+              match = false;
+              break;
+            }
+          }
+          if (match) {
+            conversationIds.push(convo.conversationId);
+            conversationStore.delete(id);
+            count++;
+          }
+        }
       }
-
-      const deleteConvoResult = await Conversation.deleteMany(userFilter);
 
       const deleteMessagesResult = await deleteMessages({
         conversationId: { $in: conversationIds },
       });
 
-      return { ...deleteConvoResult, messages: deleteMessagesResult };
+      return { deletedCount: count, messages: deleteMessagesResult };
     } catch (error) {
       logger.error('[deleteConvos] Error deleting conversations and messages', error);
       throw error;
