@@ -2,27 +2,66 @@ const { logger } = require('@librechat/data-schemas');
 const { EToolResources, FileContext } = require('librechat-data-provider');
 const { File } = require('~/db/models');
 
+// In-memory store for files
+const fileStore = new Map();
+const MAX_FILES = 1000;
+
+// Cleanup old files every 10 minutes to prevent memory leaks
+setInterval(() => {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  for (const [id, file] of fileStore.entries()) {
+    if (new Date(file.updatedAt) < oneHourAgo) {
+      fileStore.delete(id);
+    }
+  }
+
+  if (fileStore.size > MAX_FILES) {
+    const sorted = Array.from(fileStore.entries()).sort((a, b) => new Date(a[1].updatedAt) - new Date(b[1].updatedAt));
+    const toDelete = sorted.slice(0, fileStore.size - MAX_FILES);
+    for (const [id] of toDelete) {
+      fileStore.delete(id);
+    }
+  }
+}, 10 * 60 * 1000);
+
 /**
  * Finds a file by its file_id with additional query options.
  * @param {string} file_id - The unique identifier of the file.
  * @param {object} options - Query options for filtering, projection, etc.
  * @returns {Promise<MongoFile>} A promise that resolves to the file document or null.
  */
-const findFileById = async (file_id, options = {}) => {
-  return await File.findOne({ file_id, ...options }).lean();
+const findFileById = async (file_id) => {
+  return fileStore.get(file_id);
 };
 
 /**
  * Retrieves files matching a given filter, sorted by the most recently updated.
  * @param {Object} filter - The filter criteria to apply.
  * @param {Object} [_sortOptions] - Optional sort parameters.
- * @param {Object|String} [selectFields={ text: 0 }] - Fields to include/exclude in the query results.
- *                                                   Default excludes the 'text' field.
  * @returns {Promise<Array<MongoFile>>} A promise that resolves to an array of file documents.
  */
-const getFiles = async (filter, _sortOptions, selectFields = { text: 0 }) => {
-  const sortOptions = { updatedAt: -1, ..._sortOptions };
-  return await File.find(filter).select(selectFields).sort(sortOptions).lean();
+const getFiles = async (filter) => {
+  const files = Array.from(fileStore.values()).filter((file) => {
+    for (const key in filter) {
+      const filterVal = filter[key];
+      const fileVal = file[key];
+
+      if (typeof filterVal === 'object' && filterVal !== null) {
+         if (filterVal.$in && Array.isArray(filterVal.$in)) {
+           if (!filterVal.$in.includes(fileVal)) return false;
+           continue;
+         }
+         if (filterVal.$ne !== undefined && fileVal === filterVal.$ne) return false;
+         if (filterVal.$exists === true && fileVal === undefined) return false;
+         if (filterVal.$exists === false && fileVal !== undefined) return false;
+      } else if (fileVal !== filterVal) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  return files.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 };
 
 /**
@@ -137,20 +176,15 @@ const getUserCodeFiles = async (fileIds) => {
  * @param {boolean} disableTTL - Whether to disable the TTL.
  * @returns {Promise<MongoFile>} A promise that resolves to the created file document.
  */
-const createFile = async (data, disableTTL) => {
+const createFile = async (data) => {
   const fileData = {
     ...data,
-    expiresAt: new Date(Date.now() + 3600 * 1000),
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  if (disableTTL) {
-    delete fileData.expiresAt;
-  }
-
-  return await File.findOneAndUpdate({ file_id: data.file_id }, fileData, {
-    new: true,
-    upsert: true,
-  }).lean();
+  fileStore.set(data.file_id, fileData);
+  return fileData;
 };
 
 /**
@@ -160,11 +194,11 @@ const createFile = async (data, disableTTL) => {
  */
 const updateFile = async (data) => {
   const { file_id, ...update } = data;
-  const updateOperation = {
-    $set: update,
-    $unset: { expiresAt: '' }, // Remove the expiresAt field to prevent TTL
-  };
-  return await File.findOneAndUpdate({ file_id }, updateOperation, { new: true }).lean();
+  const existing = fileStore.get(file_id);
+  if (!existing) return null;
+  const updated = { ...existing, ...update, updatedAt: new Date() };
+  fileStore.set(file_id, updated);
+  return updated;
 };
 
 /**
@@ -174,11 +208,11 @@ const updateFile = async (data) => {
  */
 const updateFileUsage = async (data) => {
   const { file_id, inc = 1 } = data;
-  const updateOperation = {
-    $inc: { usage: inc },
-    $unset: { expiresAt: '', temp_file_id: '' },
-  };
-  return await File.findOneAndUpdate({ file_id }, updateOperation, { new: true }).lean();
+  const existing = fileStore.get(file_id);
+  if (!existing) return null;
+  const updated = { ...existing, usage: (existing.usage || 0) + inc, updatedAt: new Date() };
+  fileStore.set(file_id, updated);
+  return updated;
 };
 
 /**
@@ -187,7 +221,9 @@ const updateFileUsage = async (data) => {
  * @returns {Promise<MongoFile>} A promise that resolves to the deleted file document or null.
  */
 const deleteFile = async (file_id) => {
-  return await File.findOneAndDelete({ file_id }).lean();
+  const file = fileStore.get(file_id);
+  fileStore.delete(file_id);
+  return file;
 };
 
 /**
@@ -196,7 +232,20 @@ const deleteFile = async (file_id) => {
  * @returns {Promise<MongoFile>} A promise that resolves to the deleted file document or null.
  */
 const deleteFileByFilter = async (filter) => {
-  return await File.findOneAndDelete(filter).lean();
+  for (const [id, file] of fileStore.entries()) {
+    let match = true;
+    for (const key in filter) {
+      if (file[key] !== filter[key]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      fileStore.delete(id);
+      return file;
+    }
+  }
+  return null;
 };
 
 /**
@@ -205,11 +254,23 @@ const deleteFileByFilter = async (filter) => {
  * @returns {Promise<Object>} A promise that resolves to the result of the deletion operation.
  */
 const deleteFiles = async (file_ids, user) => {
-  let deleteQuery = { file_id: { $in: file_ids } };
+  let count = 0;
   if (user) {
-    deleteQuery = { user: user };
+    for (const [id, file] of fileStore.entries()) {
+      if (file.user === user) {
+        fileStore.delete(id);
+        count++;
+      }
+    }
+  } else if (file_ids && Array.isArray(file_ids)) {
+    for (const id of file_ids) {
+      if (fileStore.has(id)) {
+        fileStore.delete(id);
+        count++;
+      }
+    }
   }
-  return await File.deleteMany(deleteQuery);
+  return { deletedCount: count };
 };
 
 /**
@@ -223,15 +284,14 @@ async function batchUpdateFiles(updates) {
     return;
   }
 
-  const bulkOperations = updates.map((update) => ({
-    updateOne: {
-      filter: { file_id: update.file_id },
-      update: { $set: { filepath: update.filepath } },
-    },
-  }));
-
-  const result = await File.bulkWrite(bulkOperations);
-  logger.info(`Updated ${result.modifiedCount} files with new S3 URLs`);
+  for (const update of updates) {
+    const existing = fileStore.get(update.file_id);
+    if (existing) {
+      existing.filepath = update.filepath;
+      existing.updatedAt = new Date();
+      fileStore.set(update.file_id, existing);
+    }
+  }
 }
 
 module.exports = {

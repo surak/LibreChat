@@ -1,9 +1,16 @@
 const { logger } = require('@librechat/data-schemas');
 const { Preset } = require('~/db/models');
 
+// In-memory store for presets
+const presetStore = new Map();
+
 const getPreset = async (user, presetId) => {
   try {
-    return await Preset.findOne({ user, presetId }).lean();
+    const preset = presetStore.get(presetId);
+    if (preset && preset.user === user) {
+      return preset;
+    }
+    return null;
   } catch (error) {
     logger.error('[getPreset] Error getting single preset', error);
     return { message: 'Error getting single preset' };
@@ -14,7 +21,14 @@ module.exports = {
   getPreset,
   getPresets: async (user, filter) => {
     try {
-      const presets = await Preset.find({ ...filter, user }).lean();
+      const presets = Array.from(presetStore.values()).filter((preset) => {
+        if (preset.user !== user) return false;
+        for (const key in filter) {
+          if (preset[key] !== filter[key]) return false;
+        }
+        return true;
+      });
+
       const defaultValue = 10000;
 
       presets.sort((a, b) => {
@@ -36,47 +50,53 @@ module.exports = {
   },
   savePreset: async (user, { presetId, newPresetId, defaultPreset, ...preset }) => {
     try {
-      const setter = { $set: {} };
-      const { user: _, ...cleanPreset } = preset;
-      const update = { presetId, ...cleanPreset };
+      const targetId = newPresetId || presetId;
+      const update = { presetId: targetId, ...preset, user, updatedAt: new Date() };
+
       if (preset.tools && Array.isArray(preset.tools)) {
         update.tools =
           preset.tools
             .map((tool) => tool?.pluginKey ?? tool)
             .filter((toolName) => typeof toolName === 'string') ?? [];
       }
-      if (newPresetId) {
-        update.presetId = newPresetId;
-      }
 
       if (defaultPreset) {
         update.defaultPreset = defaultPreset;
         update.order = 0;
 
-        const currentDefault = await Preset.findOne({ defaultPreset: true, user });
-
-        if (currentDefault && currentDefault.presetId !== presetId) {
-          await Preset.findByIdAndUpdate(currentDefault._id, {
-            $unset: { defaultPreset: '', order: '' },
-          });
+        for (const [id, p] of presetStore.entries()) {
+           if (p.user === user && p.defaultPreset && id !== targetId) {
+             p.defaultPreset = undefined;
+             p.order = undefined;
+             presetStore.set(id, p);
+           }
         }
-      } else if (defaultPreset === false) {
-        update.defaultPreset = undefined;
-        update.order = undefined;
-        setter['$unset'] = { defaultPreset: '', order: '' };
       }
 
-      setter.$set = update;
-      return await Preset.findOneAndUpdate({ presetId, user }, setter, { new: true, upsert: true });
+      presetStore.set(targetId, update);
+      return update;
     } catch (error) {
       logger.error('[savePreset] Error saving preset', error);
       return { message: 'Error saving preset' };
     }
   },
   deletePresets: async (user, filter) => {
-    // let toRemove = await Preset.find({ ...filter, user }).select('presetId');
-    // const ids = toRemove.map((instance) => instance.presetId);
-    let deleteCount = await Preset.deleteMany({ ...filter, user });
-    return deleteCount;
+    let count = 0;
+    for (const [id, preset] of presetStore.entries()) {
+      if (preset.user === user) {
+        let match = true;
+        for (const key in filter) {
+          if (preset[key] !== filter[key]) {
+            match = false;
+            break;
+          }
+        }
+        if (match) {
+          presetStore.delete(id);
+          count++;
+        }
+      }
+    }
+    return { deletedCount: count };
   },
 };

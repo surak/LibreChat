@@ -75,19 +75,8 @@ export default function Root() {
               <Banner onHeightChange={setBannerHeight} />
               <div className="flex" style={{ height: `calc(100dvh - ${bannerHeight}px)` }}>
                 <div className="relative z-0 flex h-full w-full overflow-hidden">
-                  <Nav navVisible={navVisible} setNavVisible={setNavVisible} />
                   <div
                     className="relative flex h-full max-w-full flex-1 flex-col overflow-hidden"
-                    style={
-                      isSmallScreen
-                        ? {
-                            transform: navVisible
-                              ? `translateX(${NAV_WIDTH.MOBILE}px)`
-                              : 'translateX(0)',
-                            transition: 'transform 0.2s ease-out',
-                          }
-                        : undefined
-                    }
                   >
                     <MobileNav navVisible={navVisible} setNavVisible={setNavVisible} />
                     <Outlet context={{ navVisible, setNavVisible } satisfies ContextType} />
