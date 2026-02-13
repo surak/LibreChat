@@ -44,7 +44,6 @@ const MessageRender = memo(
       conversation,
       messageLabel,
       latestMessage,
-      handleFeedback,
       handleContinue,
       copyToClipboard,
       regenerateMessage,
@@ -187,7 +186,6 @@ const MessageRender = memo(
                   copyToClipboard={copyToClipboard}
                   handleContinue={handleContinue}
                   latestMessage={latestMessage}
-                  handleFeedback={handleFeedback}
                   isLast={isLast}
                 />
               </SubRow>

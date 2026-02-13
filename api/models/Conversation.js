@@ -5,12 +5,22 @@ const { Conversation } = require('~/db/models');
 
 // In-memory store for conversations
 const conversationStore = new Map();
+const MAX_CONVOS = 1000;
 
 // Cleanup old conversations every 10 minutes to prevent memory leaks
 setInterval(() => {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   for (const [id, convo] of conversationStore.entries()) {
     if (new Date(convo.updatedAt) < oneHourAgo) {
+      conversationStore.delete(id);
+    }
+  }
+
+  // Cap the total number of conversations in memory
+  if (conversationStore.size > MAX_CONVOS) {
+    const sorted = Array.from(conversationStore.entries()).sort((a, b) => new Date(a[1].updatedAt) - new Date(b[1].updatedAt));
+    const toDelete = sorted.slice(0, conversationStore.size - MAX_CONVOS);
+    for (const [id] of toDelete) {
       conversationStore.delete(id);
     }
   }
@@ -177,7 +187,16 @@ module.exports = {
         if (convo.user === user) {
           let match = true;
           for (const key in filter) {
-            if (convo[key] !== filter[key]) {
+            const filterVal = filter[key];
+            const convoVal = convo[key];
+
+            if (typeof filterVal === 'object' && filterVal !== null) {
+               // handle common operators if needed, but deleteConvos filter is usually simple
+               if (filterVal.$in && Array.isArray(filterVal.$in)) {
+                 if (!filterVal.$in.includes(convoVal)) { match = false; break; }
+                 continue;
+               }
+            } else if (convoVal !== filterVal) {
               match = false;
               break;
             }

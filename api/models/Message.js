@@ -7,12 +7,22 @@ const idSchema = z.string().uuid();
 
 // In-memory store for messages to avoid saving to MongoDB
 const messageStore = new Map();
+const MAX_MESSAGES = 10000;
 
 // Cleanup old messages every 10 minutes to prevent memory leaks
 setInterval(() => {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   for (const [id, msg] of messageStore.entries()) {
     if (new Date(msg.updatedAt) < oneHourAgo) {
+      messageStore.delete(id);
+    }
+  }
+
+  // Cap the total number of messages in memory
+  if (messageStore.size > MAX_MESSAGES) {
+    const sorted = Array.from(messageStore.entries()).sort((a, b) => new Date(a[1].updatedAt) - new Date(b[1].updatedAt));
+    const toDelete = sorted.slice(0, messageStore.size - MAX_MESSAGES);
+    for (const [id] of toDelete) {
       messageStore.delete(id);
     }
   }
@@ -275,15 +285,21 @@ async function getMessages(filter) {
   try {
     const messages = Array.from(messageStore.values()).filter((msg) => {
       for (const key in filter) {
-        if (filter[key] !== msg[key]) {
-          // Simplified matching for now, doesn't handle $in, etc.
-          if (typeof filter[key] === 'object' && filter[key] !== null) {
-             if (filter[key].$in && Array.isArray(filter[key].$in)) {
-               if (!filter[key].$in.includes(msg[key])) return false;
-               continue;
-             }
-          }
-          if (msg[key] !== filter[key]) return false;
+        const filterVal = filter[key];
+        const msgVal = msg[key];
+
+        if (typeof filterVal === 'object' && filterVal !== null) {
+           if (filterVal.$in && Array.isArray(filterVal.$in)) {
+             if (!filterVal.$in.includes(msgVal)) return false;
+             continue;
+           }
+           if (filterVal.$gt && new Date(msgVal) <= new Date(filterVal.$gt)) return false;
+           if (filterVal.$lt && new Date(msgVal) >= new Date(filterVal.$lt)) return false;
+           if (filterVal.$exists === true && msgVal === undefined) return false;
+           if (filterVal.$exists === false && msgVal !== undefined) return false;
+           if (filterVal.$ne !== undefined && msgVal === filterVal.$ne) return false;
+        } else if (msgVal !== filterVal) {
+          return false;
         }
       }
       return true;
