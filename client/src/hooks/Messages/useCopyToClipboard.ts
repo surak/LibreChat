@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import copy from 'copy-to-clipboard';
 import { ContentTypes, SearchResultData } from 'librechat-data-provider';
 import type { TMessage } from 'librechat-data-provider';
+import { useGetStartupConfig } from '~/data-provider';
 import {
   SPAN_REGEX,
   CLEANUP_REGEX,
@@ -31,9 +32,11 @@ export default function useCopyToClipboard({
   text,
   content,
   searchResults,
-}: Partial<Pick<TMessage, 'text' | 'content'>> & {
+  isCreatedByUser,
+}: Partial<Pick<TMessage, 'text' | 'content' | 'isCreatedByUser'>> & {
   searchResults?: { [key: string]: SearchResultData };
 }) {
+  const { data: startupConfig } = useGetStartupConfig();
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -70,7 +73,11 @@ export default function useCopyToClipboard({
           .replace(INVALID_CITATION_REGEX, '')
           .replace(CLEANUP_REGEX, '');
 
-        copy(cleanedText, { format: 'text/plain' });
+        let textToCopy = cleanedText;
+        if (isCreatedByUser !== true && startupConfig?.copyTextAppend) {
+          textToCopy += `\n\n${startupConfig.copyTextAppend}`;
+        }
+        copy(textToCopy, { format: 'text/plain' });
         copyTimeoutRef.current = setTimeout(() => {
           setIsCopied(false);
         }, 3000);
@@ -95,12 +102,16 @@ export default function useCopyToClipboard({
         }
       }
 
-      copy(processedText, { format: 'text/plain' });
+      let textToCopy = processedText;
+      if (isCreatedByUser !== true && startupConfig?.copyTextAppend) {
+        textToCopy += `\n\n${startupConfig.copyTextAppend}`;
+      }
+      copy(textToCopy, { format: 'text/plain' });
       copyTimeoutRef.current = setTimeout(() => {
         setIsCopied(false);
       }, 3000);
     },
-    [text, content, searchResults],
+    [text, content, searchResults, isCreatedByUser, startupConfig?.copyTextAppend],
   );
 
   return copyToClipboard;
