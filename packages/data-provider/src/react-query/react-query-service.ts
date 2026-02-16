@@ -192,9 +192,17 @@ export const useGetModelsQuery = (
     ...config,
     select: (data) => {
       const filteredData: t.TModelsConfig = {};
+      const blockedModels = new Set(['gpt-3.5-turbo', 'text-davinci-003', 'text-embedding-ada-002']);
       for (const key in data) {
         if (Array.isArray(data[key])) {
-          filteredData[key] = data[key].filter((model: string) => !model.startsWith('alias-'));
+          filteredData[key] = data[key].filter((model: string) => {
+            const lowerModel = model.toLowerCase();
+            return (
+              !model.startsWith('alias-') &&
+              !blockedModels.has(model) &&
+              !lowerModel.includes('embedding')
+            );
+          });
         } else {
           filteredData[key] = data[key];
         }
