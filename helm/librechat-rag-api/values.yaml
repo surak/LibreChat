@@ -8,8 +8,8 @@ rag:
     EMBEDDINGS_PROVIDER: openai
 
 image:
-  repository: danny-avila/librechat-rag-api-dev-lite # there is rag-api-dev and rag-api-dev-lite. currently only lite is docuimented
-  registry: ghcr.io
+  repository: registry.jsc.fz-juelich.de/kaas/rke2-clusters/blablador/librechat-rag-api
+  registry: ''
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: latest
@@ -19,8 +19,8 @@ postgresql:
   enabled: true
   # nameOverride: vectordb
   image:
-    registry: ghcr.io
-    repository: bat-bs/bitnami-pgvector
+    registry: ''
+    repository: registry.jsc.fz-juelich.de/kaas/rke2-clusters/blablador/bitnami-pgvector
     tag: pg16
   auth:
     database: librechat-vectordb
@@ -59,7 +59,6 @@ service:
   type: ClusterIP
   port: 8000
   annotations: {}
-
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

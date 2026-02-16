@@ -186,3 +186,8 @@ const CreateMessageSchema = z.object({
   text: z.string().min(1),
 });
 ```
+
+## Internal Container Registry
+
+- **LibreChat**: `registry.jsc.fz-juelich.de/kaas/rke2-clusters/blablador/librechat`
+- **RAG API**: `registry.jsc.fz-juelich.de/kaas/rke2-clusters/blablador/librechat-rag-api`
