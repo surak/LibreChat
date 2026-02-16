@@ -187,8 +187,8 @@ export const useGetModelsQuery = (
     initialData: initialModelsConfig,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    refetchOnMount: false,
-    staleTime: Infinity,
+    refetchOnMount: true,
+    staleTime: 0,
     ...config,
     select: (data) => {
       const filteredData: t.TModelsConfig = {};
