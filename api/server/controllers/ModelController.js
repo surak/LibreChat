@@ -33,7 +33,7 @@ async function loadModels(req) {
 
   const modelConfig = { ...defaultModelsConfig, ...customModelsConfig };
 
-  await cache.set(CacheKeys.MODELS_CONFIG, modelConfig);
+  await cache.set(CacheKeys.MODELS_CONFIG, modelConfig, 300000);
   return modelConfig;
 }
 

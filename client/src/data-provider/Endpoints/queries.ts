@@ -13,10 +13,10 @@ export const useGetEndpointsQuery = <TData = t.TEndpointsConfig>(
     [QueryKeys.endpoints],
     () => dataService.getAIEndpoints(),
     {
-      staleTime: Infinity,
+      staleTime: 0,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
       ...config,
       enabled: (config?.enabled ?? true) === true && queriesEnabled,
       select: (data) => {
@@ -60,10 +60,10 @@ export const useGetStartupConfig = (
     [QueryKeys.startupConfig],
     () => dataService.getStartupConfig(),
     {
-      staleTime: Infinity,
+      staleTime: 0,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
       ...config,
       enabled: (config?.enabled ?? true) === true && queriesEnabled,
       select: (data) => {
