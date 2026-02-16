@@ -190,6 +190,17 @@ export const useGetModelsQuery = (
     refetchOnMount: false,
     staleTime: Infinity,
     ...config,
+    select: (data) => {
+      const filteredData: t.TModelsConfig = {};
+      for (const key in data) {
+        if (Array.isArray(data[key])) {
+          filteredData[key] = data[key].filter((model: string) => !model.startsWith('alias-'));
+        } else {
+          filteredData[key] = data[key];
+        }
+      }
+      return config?.select ? config.select(filteredData) : filteredData;
+    },
   });
 };
 

@@ -19,6 +19,29 @@ export const useGetEndpointsQuery = <TData = t.TEndpointsConfig>(
       refetchOnMount: false,
       ...config,
       enabled: (config?.enabled ?? true) === true && queriesEnabled,
+      select: (data) => {
+        const filteredData: t.TEndpointsConfig = {};
+        for (const key in data) {
+          const ep = data[key];
+          if (!ep) {
+            filteredData[key] = ep;
+            continue;
+          }
+          filteredData[key] = {
+            ...ep,
+            models: ep.models
+              ? {
+                  ...ep.models,
+                  default: ep.models.default?.filter((model) => {
+                    const name = typeof model === 'string' ? model : model.name;
+                    return !name.startsWith('alias-');
+                  }),
+                }
+              : ep.models,
+          };
+        }
+        return config?.select ? config.select(filteredData) : (filteredData as unknown as TData);
+      },
     },
   );
 };
@@ -37,6 +60,20 @@ export const useGetStartupConfig = (
       refetchOnMount: false,
       ...config,
       enabled: (config?.enabled ?? true) === true && queriesEnabled,
+      select: (data) => {
+        const filteredData = {
+          ...data,
+          modelSpecs: data?.modelSpecs
+            ? {
+                ...data.modelSpecs,
+                list: data.modelSpecs.list?.filter((spec) => !spec.name.startsWith('alias-')),
+              }
+            : data?.modelSpecs,
+        };
+        return config?.select
+          ? config.select(filteredData as t.TStartupConfig)
+          : (filteredData as t.TStartupConfig);
+      },
     },
   );
 };
