@@ -1,8 +1,7 @@
-import type { Document, Types } from 'mongoose';
-
-export interface IPrompt extends Document {
-  groupId: Types.ObjectId;
-  author: Types.ObjectId;
+export interface IPrompt {
+  _id: string;
+  groupId: string;
+  author: string;
   prompt: string;
   type: 'text' | 'chat';
   createdAt?: Date;
@@ -10,13 +9,14 @@ export interface IPrompt extends Document {
 }
 
 export interface IPromptGroup {
+  _id: string;
   name: string;
   numberOfGenerations: number;
   oneliner: string;
   category: string;
-  projectIds: Types.ObjectId[];
-  productionId: Types.ObjectId;
-  author: Types.ObjectId;
+  projectIds: string[];
+  productionId: string;
+  author: string;
   authorName: string;
   command?: string;
   createdAt?: Date;
@@ -24,4 +24,4 @@ export interface IPromptGroup {
   isPublic?: boolean;
 }
 
-export interface IPromptGroupDocument extends IPromptGroup, Document {}
+export interface IPromptGroupDocument extends IPromptGroup {}

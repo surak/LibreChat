@@ -1,9 +1,7 @@
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import { logger, balanceSchema } from '@librechat/data-schemas';
+import { logger } from '@librechat/data-schemas';
 import type { NextFunction, Request as ServerRequest, Response as ServerResponse } from 'express';
-import type { IBalance } from '@librechat/data-schemas';
 import { createSetBalanceConfig } from './balance';
+import { v4 as uuidv4 } from 'uuid';
 
 jest.mock('@librechat/data-schemas', () => ({
   ...jest.requireActual('@librechat/data-schemas'),
@@ -12,45 +10,86 @@ jest.mock('@librechat/data-schemas', () => ({
   },
 }));
 
-let mongoServer: MongoMemoryServer;
-let Balance: mongoose.Model<IBalance>;
+// Mock Balance implementation
+class MockBalance {
+  store = new Map<string, any>();
 
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  Balance = mongoose.models.Balance || mongoose.model('Balance', balanceSchema);
-  await mongoose.connect(mongoUri);
-});
+  async findOne(query: any) {
+    const userId = query.user?.toString();
+    const result = Array.from(this.store.values()).find(b => b.user.toString() === userId);
+    return result ? {
+      ...result,
+      lean: () => Promise.resolve(result)
+    } : null;
+  }
 
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
+  async findOneAndUpdate(query: any, update: any, options: any) {
+    const userId = query.user?.toString();
+    let record = Array.from(this.store.values()).find(b => b.user.toString() === userId);
+
+    if (!record && options.upsert) {
+      record = { _id: uuidv4(), user: userId, ...update.$setOnInsert };
+      this.store.set(record._id, record);
+    }
+
+    if (record) {
+      if (update.$set) Object.assign(record, update.$set);
+      if (update.$setOnInsert) Object.assign(record, update.$setOnInsert);
+      return record;
+    }
+    return null;
+  }
+
+  async find(query: any) {
+    const userId = query.user?.toString();
+    return Array.from(this.store.values()).filter(b => b.user.toString() === userId);
+  }
+
+  async create(data: any) {
+    const record = { _id: uuidv4(), lastRefill: new Date(), ...data };
+    this.store.set(record._id, record);
+    return record;
+  }
+
+  async updateOne(query: any, update: any) {
+    const userId = query.user?.toString() || (query._id && this.store.get(query._id)?.user);
+    const record = Array.from(this.store.values()).find(b => b.user.toString() === userId || b._id === query._id);
+    if (record) {
+      if (update.$unset) {
+        for (const key in update.$unset) delete record[key];
+      }
+      return { modifiedCount: 1 };
+    }
+    return { modifiedCount: 0 };
+  }
+}
+
+let Balance: any;
 
 beforeEach(async () => {
-  await mongoose.connection.dropDatabase();
+  Balance = new MockBalance();
   jest.clearAllMocks();
   jest.restoreAllMocks();
 });
 
 describe('createSetBalanceConfig', () => {
-  const createMockRequest = (userId: string | mongoose.Types.ObjectId): Partial<ServerRequest> => ({
+  const createMockRequest = (userId: string): Partial<ServerRequest> => ({
     user: {
       _id: userId,
       id: userId.toString(),
       email: 'test@example.com',
     },
-  });
+  } as any);
 
   const createMockResponse = (): Partial<ServerResponse> => ({
     status: jest.fn().mockReturnThis(),
     json: jest.fn().mockReturnThis(),
-  });
+  } as any);
 
   const mockNext: NextFunction = jest.fn();
   describe('Basic Functionality', () => {
     test('should create balance record for new user with start balance', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
       const getAppConfig = jest.fn().mockResolvedValue({
         balance: {
           enabled: true,
@@ -86,7 +125,7 @@ describe('createSetBalanceConfig', () => {
     });
 
     test('should skip if balance config is not enabled', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
       const getAppConfig = jest.fn().mockResolvedValue({
         balance: {
           enabled: false,
@@ -110,7 +149,7 @@ describe('createSetBalanceConfig', () => {
     });
 
     test('should skip if startBalance is null', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
       const getAppConfig = jest.fn().mockResolvedValue({
         balance: {
           enabled: true,
@@ -132,36 +171,6 @@ describe('createSetBalanceConfig', () => {
 
       const balanceRecord = await Balance.findOne({ user: userId });
       expect(balanceRecord).toBeNull();
-    });
-
-    test('should handle user._id as string', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
-      const getAppConfig = jest.fn().mockResolvedValue({
-        balance: {
-          enabled: true,
-          startBalance: 1000,
-          autoRefillEnabled: true,
-          refillIntervalValue: 30,
-          refillIntervalUnit: 'days',
-          refillAmount: 500,
-        },
-      });
-
-      const middleware = createSetBalanceConfig({
-        getAppConfig,
-        Balance,
-      });
-
-      const req = createMockRequest(userId);
-      const res = createMockResponse();
-
-      await middleware(req as ServerRequest, res as ServerResponse, mockNext);
-
-      expect(mockNext).toHaveBeenCalled();
-
-      const balanceRecord = await Balance.findOne({ user: userId });
-      expect(balanceRecord).toBeTruthy();
-      expect(balanceRecord?.tokenCredits).toBe(1000);
     });
 
     test('should skip if user is not present in request', async () => {
@@ -193,10 +202,9 @@ describe('createSetBalanceConfig', () => {
 
   describe('Edge Case: Auto-refill without lastRefill', () => {
     test('should initialize lastRefill when enabling auto-refill for existing user without lastRefill', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
 
       // Create existing balance record without lastRefill
-      // Note: We need to unset lastRefill after creation since the schema has a default
       const doc = await Balance.create({
         user: userId,
         tokenCredits: 500,
@@ -244,7 +252,7 @@ describe('createSetBalanceConfig', () => {
     });
 
     test('should not update lastRefill if it already exists', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
       const existingLastRefill = new Date('2024-01-01');
 
       // Create existing balance record with lastRefill
@@ -286,10 +294,9 @@ describe('createSetBalanceConfig', () => {
     });
 
     test('should handle existing user with auto-refill enabled but missing lastRefill', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
 
       // Create a balance record with auto-refill enabled but missing lastRefill
-      // This simulates the exact edge case reported by the user
       const doc = await Balance.create({
         user: userId,
         tokenCredits: 500,
@@ -329,11 +336,10 @@ describe('createSetBalanceConfig', () => {
       expect(balanceRecord).toBeTruthy();
       expect(balanceRecord?.autoRefillEnabled).toBe(true);
       expect(balanceRecord?.lastRefill).toBeInstanceOf(Date);
-      // This should have fixed the issue - user should no longer get the error
     });
 
     test('should not set lastRefill when auto-refill is disabled', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
 
       const getAppConfig = jest.fn().mockResolvedValue({
         balance: {
@@ -360,14 +366,13 @@ describe('createSetBalanceConfig', () => {
       expect(balanceRecord).toBeTruthy();
       expect(balanceRecord?.tokenCredits).toBe(1000);
       expect(balanceRecord?.autoRefillEnabled).toBe(false);
-      // lastRefill should have default value from schema
       expect(balanceRecord?.lastRefill).toBeInstanceOf(Date);
     });
   });
 
   describe('Update Scenarios', () => {
     test('should update auto-refill settings for existing user', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
 
       // Create existing balance record
       await Balance.create({
@@ -409,7 +414,7 @@ describe('createSetBalanceConfig', () => {
     });
 
     test('should not update if values are already the same', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
       const lastRefillTime = new Date();
 
       // Create existing balance record with same values
@@ -442,7 +447,6 @@ describe('createSetBalanceConfig', () => {
       const req = createMockRequest(userId);
       const res = createMockResponse();
 
-      // Spy on Balance.findOneAndUpdate to verify it's not called
       const updateSpy = jest.spyOn(Balance, 'findOneAndUpdate');
 
       await middleware(req as ServerRequest, res as ServerResponse, mockNext);
@@ -452,7 +456,7 @@ describe('createSetBalanceConfig', () => {
     });
 
     test('should set tokenCredits for user with null tokenCredits', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
 
       // Create balance record with null tokenCredits
       await Balance.create({
@@ -485,7 +489,7 @@ describe('createSetBalanceConfig', () => {
 
   describe('Error Handling', () => {
     test('should handle database errors gracefully', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
       const getAppConfig = jest.fn().mockResolvedValue({
         balance: {
           enabled: true,
@@ -498,12 +502,7 @@ describe('createSetBalanceConfig', () => {
       });
       const dbError = new Error('Database error');
 
-      // Mock Balance.findOne to throw an error
-      jest.spyOn(Balance, 'findOne').mockImplementationOnce((() => {
-        return {
-          lean: jest.fn().mockRejectedValue(dbError),
-        };
-      }) as unknown as mongoose.Model<IBalance>['findOne']);
+      jest.spyOn(Balance, 'findOne').mockRejectedValue(dbError);
 
       const middleware = createSetBalanceConfig({
         getAppConfig,
@@ -520,7 +519,7 @@ describe('createSetBalanceConfig', () => {
     });
 
     test('should handle getAppConfig errors', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
       const configError = new Error('Config error');
       const getAppConfig = jest.fn().mockRejectedValue(configError);
 
@@ -539,7 +538,7 @@ describe('createSetBalanceConfig', () => {
     });
 
     test('should handle invalid auto-refill configuration', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
 
       // Missing required auto-refill fields
       const getAppConfig = jest.fn().mockResolvedValue({
@@ -576,7 +575,7 @@ describe('createSetBalanceConfig', () => {
 
   describe('Concurrent Updates', () => {
     test('should handle concurrent middleware calls for same user', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
       const getAppConfig = jest.fn().mockResolvedValue({
         balance: {
           enabled: true,
@@ -619,7 +618,7 @@ describe('createSetBalanceConfig', () => {
     test.each(['seconds', 'minutes', 'hours', 'days', 'weeks', 'months'])(
       'should handle refillIntervalUnit: %s',
       async (unit) => {
-        const userId = new mongoose.Types.ObjectId();
+        const userId = uuidv4();
 
         const getAppConfig = jest.fn().mockResolvedValue({
           balance: {

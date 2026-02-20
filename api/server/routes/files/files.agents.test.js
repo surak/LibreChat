@@ -1,9 +1,7 @@
 const express = require('express');
 const request = require('supertest');
-const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const { createMethods } = require('@librechat/data-schemas');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 const {
   SystemRoles,
   AccessRoleIds,
@@ -69,46 +67,16 @@ const router = require('~/server/routes/files/files');
 
 describe('File Routes - Agent Files Endpoint', () => {
   let app;
-  let mongoServer;
   let authorId;
   let otherUserId;
   let agentId;
   let fileId1;
   let fileId2;
   let fileId3;
-  let File;
-  let User;
-  let Agent;
   let methods;
-  let AclEntry;
-  // eslint-disable-next-line no-unused-vars
-  let AccessRole;
-  let modelsToCleanup = [];
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
-
-    // Initialize all models using createModels
-    const { createModels } = require('@librechat/data-schemas');
-    const models = createModels(mongoose);
-
-    // Track which models we're adding
-    modelsToCleanup = Object.keys(models);
-
-    // Register models on mongoose.models so methods can access them
-    Object.assign(mongoose.models, models);
-
-    // Create methods with our test mongoose instance
-    methods = createMethods(mongoose);
-
-    // Now we can access models from the db/models
-    File = models.File;
-    Agent = models.Agent;
-    AclEntry = models.AclEntry;
-    User = models.User;
-    AccessRole = models.AccessRole;
+    methods = createMethods();
 
     // Seed default roles using our methods
     await methods.seedDefaultRoles();
@@ -126,49 +94,34 @@ describe('File Routes - Agent Files Endpoint', () => {
     app.use('/files', router);
   });
 
-  afterAll(async () => {
-    // Clean up all collections before disconnecting
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      await collections[key].deleteMany({});
-    }
-
-    // Clear only the models we added
-    for (const modelName of modelsToCleanup) {
-      if (mongoose.models[modelName]) {
-        delete mongoose.models[modelName];
-      }
-    }
-
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
   beforeEach(async () => {
-    // Clean up all test data
-    await File.deleteMany({});
-    await Agent.deleteMany({});
-    await User.deleteMany({});
-    await AclEntry.deleteMany({});
-    // Don't delete AccessRole as they are seeded defaults needed for tests
+    // Clean up all test data from in-memory stores
+    const models = ['file', 'agent', 'user', 'aclEntry'];
+    for (const modelName of models) {
+        if (methods[modelName] && methods[modelName]._store) {
+            methods[modelName]._store.clear();
+        }
+    }
 
     // Create test users
-    authorId = new mongoose.Types.ObjectId();
-    otherUserId = new mongoose.Types.ObjectId();
+    authorId = uuidv4();
+    otherUserId = uuidv4();
     agentId = uuidv4();
     fileId1 = uuidv4();
     fileId2 = uuidv4();
     fileId3 = uuidv4();
 
     // Create users in database
-    await User.create({
+    await methods.user.create({
       _id: authorId,
+      id: authorId,
       username: 'author',
       email: 'author@test.com',
     });
 
-    await User.create({
+    await methods.user.create({
       _id: otherUserId,
+      id: otherUserId,
       username: 'other',
       email: 'other@test.com',
     });
@@ -230,12 +183,16 @@ describe('File Routes - Agent Files Endpoint', () => {
       });
 
       // Mock req.user for this request
-      app.use((req, res, next) => {
+      const otherApp = express();
+      otherApp.use(express.json());
+      otherApp.use((req, res, next) => {
         req.user = { id: otherUserId.toString() };
+        req.app = { locals: {} };
         next();
       });
+      otherApp.use('/files', router);
 
-      const response = await request(app).get(`/files/agent/${agentId}`);
+      const response = await request(otherApp).get(`/files/agent/${agentId}`);
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
@@ -324,11 +281,12 @@ describe('File Routes - Agent Files Endpoint', () => {
     });
 
     it('should return files uploaded by other users to shared agent for author', async () => {
-      const anotherUserId = new mongoose.Types.ObjectId();
+      const anotherUserId = uuidv4();
       const otherUserFileId = uuidv4();
 
-      await User.create({
+      await methods.user.create({
         _id: anotherUserId,
+        id: anotherUserId,
         username: 'another',
         email: 'another@test.com',
       });

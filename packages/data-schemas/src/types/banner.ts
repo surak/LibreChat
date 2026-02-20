@@ -1,6 +1,5 @@
-import type { Document } from 'mongoose';
-
-export interface IBanner extends Document {
+export interface IBanner {
+  _id: string;
   bannerId: string;
   message: string;
   displayFrom: Date;

@@ -1,57 +1,54 @@
 import logger from '../config/winston';
 import { EToolResources, FileContext } from 'librechat-data-provider';
-import type { FilterQuery, SortOrder, Model } from 'mongoose';
 import type { IMongoFile } from '~/types/file';
 
-/** Factory function that takes mongoose instance and returns the file methods */
-export function createFileMethods(mongoose: typeof import('mongoose')) {
+const fileStore = new Map<string, IMongoFile>();
+
+// Factory function that returns the file methods
+export function createFileMethods() {
   /**
-   * Finds a file by its file_id with additional query options.
-   * @param file_id - The unique identifier of the file
-   * @param options - Query options for filtering, projection, etc.
-   * @returns A promise that resolves to the file document or null
+   * Finds a file by its file_id.
    */
   async function findFileById(
     file_id: string,
     options: Record<string, unknown> = {},
   ): Promise<IMongoFile | null> {
-    const File = mongoose.models.File as Model<IMongoFile>;
-    return File.findOne({ file_id, ...options }).lean();
+    const file = fileStore.get(file_id);
+    if (!file) return null;
+    for (const key in options) {
+      if ((file as any)[key] !== options[key]) return null;
+    }
+    return file;
   }
 
-  /** Select fields for query projection - 0 to exclude, 1 to include */
-  type SelectProjection = Record<string, 0 | 1>;
-
   /**
-   * Retrieves files matching a given filter, sorted by the most recently updated.
-   * @param filter - The filter criteria to apply
-   * @param _sortOptions - Optional sort parameters
-   * @param selectFields - Fields to include/exclude in the query results. Default excludes the 'text' field
-   * @param options - Additional query options (userId, agentId for ACL)
-   * @returns A promise that resolves to an array of file documents
+   * Retrieves files matching a given filter.
    */
   async function getFiles(
-    filter: FilterQuery<IMongoFile>,
-    _sortOptions?: Record<string, SortOrder> | null,
-    selectFields?: SelectProjection | string | null,
+    filter: any,
+    _sortOptions?: any,
+    _selectFields?: any,
   ): Promise<IMongoFile[] | null> {
-    const File = mongoose.models.File as Model<IMongoFile>;
-    const sortOptions = { updatedAt: -1 as SortOrder, ..._sortOptions };
-    const query = File.find(filter);
-    if (selectFields != null) {
-      query.select(selectFields);
-    } else {
-      query.select({ text: 0 });
-    }
-    return await query.sort(sortOptions).lean();
+    const results = Array.from(fileStore.values()).filter(file => {
+      for (const key in filter) {
+        if (typeof filter[key] === 'object' && filter[key] !== null) {
+           if (filter[key].$in && !filter[key].$in.includes((file as any)[key])) return false;
+           if (filter[key].$ne && (file as any)[key] === filter[key].$ne) return false;
+           if (filter[key].$exists === true && (file as any)[key] === undefined) return false;
+           // Add more operators if needed
+        } else if ((file as any)[key] !== filter[key]) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    results.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return results;
   }
 
   /**
-   * Retrieves tool files (files that are embedded or have a fileIdentifier) from an array of file IDs.
-   * Note: execute_code files are handled separately by getCodeGeneratedFiles.
-   * @param fileIds - Array of file_id strings to search for
-   * @param toolResourceSet - Optional filter for tool resources
-   * @returns Files that match the criteria
+   * Retrieves tool files.
    */
   async function getToolFilesByIds(
     fileIds: string[],
@@ -62,31 +59,21 @@ export function createFileMethods(mongoose: typeof import('mongoose')) {
     }
 
     try {
-      const orConditions: FilterQuery<IMongoFile>[] = [];
+      const results = Array.from(fileStore.values()).filter(file => {
+        if (!fileIds.includes(file.file_id)) return false;
+        if (file.context === FileContext.execute_code) return false;
 
-      if (toolResourceSet.has(EToolResources.context)) {
-        orConditions.push({ text: { $exists: true, $ne: null }, context: FileContext.agents });
-      }
-      if (toolResourceSet.has(EToolResources.file_search)) {
-        orConditions.push({ embedded: true });
-      }
+        if (toolResourceSet.has(EToolResources.context)) {
+          if (file.text && file.context === FileContext.agents) return true;
+        }
+        if (toolResourceSet.has(EToolResources.file_search)) {
+          if (file.embedded) return true;
+        }
+        return false;
+      });
 
-      // If no conditions to match, return empty
-      if (orConditions.length === 0) {
-        return [];
-      }
-
-      const filter: FilterQuery<IMongoFile> = {
-        file_id: { $in: fileIds },
-        context: { $ne: FileContext.execute_code },
-        $or: orConditions,
-      };
-
-      const selectFields: SelectProjection = { text: 0 };
-      const sortOptions = { updatedAt: -1 as SortOrder };
-
-      const results = await getFiles(filter, sortOptions, selectFields);
-      return results ?? [];
+      results.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      return results;
     } catch (error) {
       logger.error('[getToolFilesByIds] Error retrieving tool files:', error);
       throw new Error('Error retrieving tool files');
@@ -94,47 +81,25 @@ export function createFileMethods(mongoose: typeof import('mongoose')) {
   }
 
   /**
-   * Retrieves files generated by code execution for a given conversation.
-   * These files are stored locally with fileIdentifier metadata for code env re-upload.
-   *
-   * @param conversationId - The conversation ID to search for
-   * @param messageIds - Array of messageIds to filter by (for linear thread filtering).
-   *   While technically optional, this function returns empty if not provided.
-   *   This is intentional: code-generated files must be filtered by thread to avoid
-   *   including files from other branches of a conversation.
-   * @returns Files generated by code execution in the conversation, filtered by messageIds
+   * Retrieves files generated by code execution.
    */
   async function getCodeGeneratedFiles(
     conversationId: string,
     messageIds?: string[],
   ): Promise<IMongoFile[]> {
-    if (!conversationId) {
-      return [];
-    }
-
-    /**
-     * Return early if messageIds not provided - this is intentional behavior.
-     * Code-generated files must be filtered by thread messageIds to ensure we only
-     * return files relevant to the current conversation branch, not orphaned files
-     * from other branches or deleted messages.
-     */
-    if (!messageIds || messageIds.length === 0) {
+    if (!conversationId || !messageIds || messageIds.length === 0) {
       return [];
     }
 
     try {
-      const filter: FilterQuery<IMongoFile> = {
+      const filter = {
         conversationId,
         context: FileContext.execute_code,
-        messageId: { $exists: true, $in: messageIds },
-        'metadata.fileIdentifier': { $exists: true },
+        messageId: { $in: messageIds },
       };
 
-      const selectFields: SelectProjection = { text: 0 };
-      const sortOptions = { createdAt: 1 as SortOrder };
-
-      const results = await getFiles(filter, sortOptions, selectFields);
-      return results ?? [];
+      const results = await getFiles(filter);
+      return (results || []).filter(f => f.metadata?.fileIdentifier);
     } catch (error) {
       logger.error('[getCodeGeneratedFiles] Error retrieving code generated files:', error);
       return [];
@@ -142,11 +107,7 @@ export function createFileMethods(mongoose: typeof import('mongoose')) {
   }
 
   /**
-   * Retrieves user-uploaded execute_code files (not code-generated) by their file IDs.
-   * These are files with fileIdentifier metadata but context is NOT execute_code (e.g., agents or message_attachment).
-   * File IDs should be collected from message.files arrays in the current thread.
-   * @param fileIds - Array of file IDs to fetch (from message.files in the thread)
-   * @returns User-uploaded execute_code files
+   * Retrieves user-uploaded execute_code files.
    */
   async function getUserCodeFiles(fileIds?: string[]): Promise<IMongoFile[]> {
     if (!fileIds || fileIds.length === 0) {
@@ -154,17 +115,13 @@ export function createFileMethods(mongoose: typeof import('mongoose')) {
     }
 
     try {
-      const filter: FilterQuery<IMongoFile> = {
+      const filter = {
         file_id: { $in: fileIds },
         context: { $ne: FileContext.execute_code },
-        'metadata.fileIdentifier': { $exists: true },
       };
 
-      const selectFields: SelectProjection = { text: 0 };
-      const sortOptions = { createdAt: 1 as SortOrder };
-
-      const results = await getFiles(filter, sortOptions, selectFields);
-      return results ?? [];
+      const results = await getFiles(filter);
+      return (results || []).filter(f => f.metadata?.fileIdentifier);
     } catch (error) {
       logger.error('[getUserCodeFiles] Error retrieving user code files:', error);
       return [];
@@ -172,9 +129,7 @@ export function createFileMethods(mongoose: typeof import('mongoose')) {
   }
 
   /**
-   * Atomically claims a file_id for a code-execution output by compound key.
-   * Uses $setOnInsert so concurrent calls for the same (filename, conversationId)
-   * converge on a single record instead of creating duplicates.
+   * Claim a file_id for a code-execution output.
    */
   async function claimCodeFile(data: {
     filename: string;
@@ -182,189 +137,172 @@ export function createFileMethods(mongoose: typeof import('mongoose')) {
     file_id: string;
     user: string;
   }): Promise<IMongoFile> {
-    const File = mongoose.models.File as Model<IMongoFile>;
-    const result = await File.findOneAndUpdate(
-      {
-        filename: data.filename,
-        conversationId: data.conversationId,
-        context: FileContext.execute_code,
-      },
-      { $setOnInsert: { file_id: data.file_id, user: data.user } },
-      { upsert: true, new: true },
-    ).lean();
-    if (!result) {
-      throw new Error(
-        `[claimCodeFile] Failed to claim file "${data.filename}" for conversation ${data.conversationId}`,
-      );
-    }
-    return result as IMongoFile;
+    let existing = Array.from(fileStore.values()).find(f =>
+      f.filename === data.filename &&
+      f.conversationId === data.conversationId &&
+      f.context === FileContext.execute_code
+    );
+
+    if (existing) return existing;
+
+    const newFile: IMongoFile = {
+      ...data,
+      context: FileContext.execute_code,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    } as any;
+    fileStore.set(data.file_id, newFile);
+    return newFile;
   }
 
   /**
-   * Creates a new file with a TTL of 1 hour.
-   * @param data - The file data to be created, must contain file_id
-   * @param disableTTL - Whether to disable the TTL
-   * @returns A promise that resolves to the created file document
+   * Creates a new file.
    */
   async function createFile(
     data: Partial<IMongoFile>,
     disableTTL?: boolean,
   ): Promise<IMongoFile | null> {
-    const File = mongoose.models.File as Model<IMongoFile>;
-    const fileData: Partial<IMongoFile> = {
+    const file_id = data.file_id as string;
+    const existing = fileStore.get(file_id);
+    const fileData: IMongoFile = {
+      ...(existing || {}),
       ...data,
-      expiresAt: new Date(Date.now() + 3600 * 1000),
-    };
+      expiresAt: disableTTL ? undefined : new Date(Date.now() + 3600 * 1000).toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdAt: (existing as any)?.createdAt || new Date().toISOString(),
+    } as any;
 
-    if (disableTTL) {
-      delete fileData.expiresAt;
-    }
-
-    return File.findOneAndUpdate({ file_id: data.file_id }, fileData, {
-      new: true,
-      upsert: true,
-    }).lean();
+    fileStore.set(file_id, fileData);
+    return fileData;
   }
 
   /**
-   * Updates a file identified by file_id with new data and removes the TTL.
-   * @param data - The data to update, must contain file_id
-   * @returns A promise that resolves to the updated file document
+   * Updates a file.
    */
   async function updateFile(
     data: Partial<IMongoFile> & { file_id: string },
   ): Promise<IMongoFile | null> {
-    const File = mongoose.models.File as Model<IMongoFile>;
     const { file_id, ...update } = data;
-    const updateOperation = {
-      $set: update,
-      $unset: { expiresAt: '' },
-    };
-    return File.findOneAndUpdate({ file_id }, updateOperation, {
-      new: true,
-    }).lean();
+    const existing = fileStore.get(file_id);
+    if (!existing) return null;
+    const updated = { ...existing, ...update, updatedAt: new Date().toISOString() };
+    delete (updated as any).expiresAt;
+    fileStore.set(file_id, updated);
+    return updated;
   }
 
   /**
-   * Increments the usage of a file identified by file_id.
-   * @param data - The data to update, must contain file_id and the increment value for usage
-   * @returns A promise that resolves to the updated file document
+   * Increments the usage of a file.
    */
   async function updateFileUsage(data: {
     file_id: string;
     inc?: number;
   }): Promise<IMongoFile | null> {
-    const File = mongoose.models.File as Model<IMongoFile>;
     const { file_id, inc = 1 } = data;
-    const updateOperation = {
-      $inc: { usage: inc },
-      $unset: { expiresAt: '', temp_file_id: '' },
+    const existing = fileStore.get(file_id);
+    if (!existing) return null;
+    const updated = {
+      ...existing,
+      usage: (existing.usage || 0) + inc,
+      updatedAt: new Date().toISOString()
     };
-    return File.findOneAndUpdate({ file_id }, updateOperation, {
-      new: true,
-    }).lean();
+    delete (updated as any).expiresAt;
+    delete (updated as any).temp_file_id;
+    fileStore.set(file_id, updated);
+    return updated;
   }
 
   /**
-   * Deletes a file identified by file_id.
-   * @param file_id - The unique identifier of the file to delete
-   * @returns A promise that resolves to the deleted file document or null
+   * Deletes a file.
    */
   async function deleteFile(file_id: string): Promise<IMongoFile | null> {
-    const File = mongoose.models.File as Model<IMongoFile>;
-    return File.findOneAndDelete({ file_id }).lean();
+    const existing = fileStore.get(file_id);
+    fileStore.delete(file_id);
+    return existing || null;
   }
 
   /**
    * Deletes a file identified by a filter.
-   * @param filter - The filter criteria to apply
-   * @returns A promise that resolves to the deleted file document or null
    */
-  async function deleteFileByFilter(filter: FilterQuery<IMongoFile>): Promise<IMongoFile | null> {
-    const File = mongoose.models.File as Model<IMongoFile>;
-    return File.findOneAndDelete(filter).lean();
+  async function deleteFileByFilter(filter: any): Promise<IMongoFile | null> {
+    for (const [id, file] of fileStore.entries()) {
+      let match = true;
+      for (const key in filter) {
+        if ((file as any)[key] !== filter[key]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        fileStore.delete(id);
+        return file;
+      }
+    }
+    return null;
   }
 
   /**
-   * Deletes multiple files identified by an array of file_ids.
-   * @param file_ids - The unique identifiers of the files to delete
-   * @param user - Optional user ID to filter by
-   * @returns A promise that resolves to the result of the deletion operation
+   * Deletes multiple files.
    */
   async function deleteFiles(
     file_ids: string[],
     user?: string,
   ): Promise<{ deletedCount?: number }> {
-    const File = mongoose.models.File as Model<IMongoFile>;
-    let deleteQuery: FilterQuery<IMongoFile> = { file_id: { $in: file_ids } };
+    let deletedCount = 0;
     if (user) {
-      deleteQuery = { user: user };
+       for (const [id, file] of fileStore.entries()) {
+          if (file.user === user) {
+             fileStore.delete(id);
+             deletedCount++;
+          }
+       }
+    } else {
+       for (const id of file_ids) {
+          if (fileStore.delete(id)) deletedCount++;
+       }
     }
-    return File.deleteMany(deleteQuery);
+    return { deletedCount };
   }
 
   /**
-   * Batch updates files with new signed URLs in MongoDB
-   * @param updates - Array of updates in the format { file_id, filepath }
+   * Batch updates files.
    */
   async function batchUpdateFiles(
     updates: Array<{ file_id: string; filepath: string }>,
   ): Promise<void> {
-    if (!updates || updates.length === 0) {
-      return;
+    for (const update of updates) {
+      const existing = fileStore.get(update.file_id);
+      if (existing) {
+        existing.filepath = update.filepath;
+        existing.updatedAt = new Date().toISOString();
+        fileStore.set(update.file_id, existing);
+      }
     }
-
-    const File = mongoose.models.File as Model<IMongoFile>;
-    const bulkOperations = updates.map((update) => ({
-      updateOne: {
-        filter: { file_id: update.file_id },
-        update: { $set: { filepath: update.filepath } },
-      },
-    }));
-
-    const result = await File.bulkWrite(bulkOperations);
-    logger.info(`Updated ${result.modifiedCount} files with new S3 URLs`);
   }
 
   /**
    * Updates usage tracking for multiple files.
-   * Processes files and optional fileIds, updating their usage count in the database.
-   *
-   * @param files - Array of file objects to process
-   * @param fileIds - Optional array of file IDs to process
-   * @returns Array of updated file documents (with null results filtered out)
    */
   async function updateFilesUsage(
     files: Array<{ file_id: string }>,
     fileIds?: string[],
   ): Promise<IMongoFile[]> {
-    const promises: Promise<IMongoFile | null>[] = [];
+    const results: IMongoFile[] = [];
     const seen = new Set<string>();
 
-    for (const file of files) {
-      const { file_id } = file;
-      if (seen.has(file_id)) {
-        continue;
-      }
-      seen.add(file_id);
-      promises.push(updateFileUsage({ file_id }));
+    const process = async (fid: string) => {
+      if (seen.has(fid)) return;
+      seen.add(fid);
+      const updated = await updateFileUsage({ file_id: fid });
+      if (updated) results.push(updated);
+    };
+
+    for (const file of files) await process(file.file_id);
+    if (fileIds) {
+      for (const fid of fileIds) await process(fid);
     }
 
-    if (!fileIds) {
-      const results = await Promise.all(promises);
-      return results.filter((result): result is IMongoFile => result != null);
-    }
-
-    for (const file_id of fileIds) {
-      if (seen.has(file_id)) {
-        continue;
-      }
-      seen.add(file_id);
-      promises.push(updateFileUsage({ file_id }));
-    }
-
-    const results = await Promise.all(promises);
-    return results.filter((result): result is IMongoFile => result != null);
+    return results;
   }
 
   return {

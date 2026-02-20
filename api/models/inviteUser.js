@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
+const { v4: uuidv4 } = require('uuid');
 const { logger, hashToken, getRandomValues } = require('@librechat/data-schemas');
-const { createToken, findToken } = require('~/models');
+const { createToken, findToken } = require('./index');
 
 /**
  * @module inviteUser
@@ -20,7 +20,7 @@ const createInvite = async (email) => {
     const hash = await hashToken(token);
     const encodedToken = encodeURIComponent(token);
 
-    const fakeUserId = new mongoose.Types.ObjectId();
+    const fakeUserId = uuidv4();
 
     await createToken({
       userId: fakeUserId,

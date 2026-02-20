@@ -1,7 +1,6 @@
-import { Document, Types } from 'mongoose';
-
-export interface IAssistant extends Document {
-  user: Types.ObjectId;
+export interface IAssistant {
+  _id: string;
+  user: string;
   assistant_id: string;
   avatar?: {
     filepath: string;

@@ -1,5 +1,3 @@
-import type { Document, Types } from 'mongoose';
-
 export type AccessRole = {
   /** e.g., "agent_viewer", "agent_editor" */
   accessRoleId: string;
@@ -12,7 +10,6 @@ export type AccessRole = {
   permBits: number;
 };
 
-export type IAccessRole = AccessRole &
-  Document & {
-    _id: Types.ObjectId;
-  };
+export type IAccessRole = AccessRole & {
+  _id: string;
+};

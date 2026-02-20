@@ -7,7 +7,7 @@ const {
 } = require('librechat-data-provider');
 const { logger } = require('@librechat/data-schemas');
 const getLogStores = require('~/cache/getLogStores');
-const { Role } = require('~/db/models');
+const { role: Role } = require('./index');
 
 /**
  * Retrieve a role by name and convert the found role document to a plain object.
@@ -15,26 +15,22 @@ const { Role } = require('~/db/models');
  * create it and return the lean version.
  *
  * @param {string} roleName - The name of the role to find or create.
- * @param {string|string[]} [fieldsToSelect] - The fields to include or exclude in the returned document.
+ * @param {string|string[]} [_fieldsToSelect] - The fields to include or exclude in the returned document.
  * @returns {Promise<IRole>} Role document.
  */
-const getRoleByName = async function (roleName, fieldsToSelect = null) {
+const getRoleByName = async function (roleName) {
   const cache = getLogStores(CacheKeys.ROLES);
   try {
     const cachedRole = await cache.get(roleName);
     if (cachedRole) {
       return cachedRole;
     }
-    let query = Role.findOne({ name: roleName });
-    if (fieldsToSelect) {
-      query = query.select(fieldsToSelect);
-    }
-    let role = await query.lean().exec();
+    let role = await Role.findOne({ name: roleName });
 
     if (!role && SystemRoles[roleName]) {
-      role = await new Role(roleDefaults[roleName]).save();
+      role = await Role.create(roleDefaults[roleName]);
       await cache.set(roleName, role);
-      return role.toObject();
+      return role;
     }
     await cache.set(roleName, role);
     return role;
@@ -56,11 +52,7 @@ const updateRoleByName = async function (roleName, updates) {
     const role = await Role.findOneAndUpdate(
       { name: roleName },
       { $set: updates },
-      { new: true, lean: true },
-    )
-      .select('-__v')
-      .lean()
-      .exec();
+    );
     await cache.set(roleName, role);
     return role;
   } catch (error) {
@@ -138,7 +130,7 @@ async function updateAccessPermissions(roleName, permissionsUpdate, roleData) {
         );
 
         try {
-          await Role.updateOne(
+          await Role.findOneAndUpdate(
             { name: roleName },
             {
               $set: updateObj,
@@ -147,7 +139,7 @@ async function updateAccessPermissions(roleName, permissionsUpdate, roleData) {
           );
 
           const cache = getLogStores(CacheKeys.ROLES);
-          const updatedRole = await Role.findOne({ name: roleName }).select('-__v').lean().exec();
+          const updatedRole = await Role.findOne({ name: roleName });
           await cache.set(roleName, updatedRole);
 
           logger.info(`Updated role '${roleName}' and removed old schema fields`);
@@ -219,7 +211,7 @@ const migrateRoleSchema = async function (roleName) {
           logger.info(`Migrating role '${role.name}' from old schema structure`);
 
           // Simple update operation
-          await Role.updateOne(
+          await Role.findOneAndUpdate(
             { _id: role._id },
             {
               $set: { permissions: role.permissions },
@@ -229,7 +221,7 @@ const migrateRoleSchema = async function (roleName) {
 
           // Refresh cache
           const cache = getLogStores(CacheKeys.ROLES);
-          const updatedRole = await Role.findById(role._id).lean().exec();
+          const updatedRole = await Role.findOne({ _id: role._id });
           await cache.set(role.name, updatedRole);
 
           migratedCount++;

@@ -1,109 +1,123 @@
-import { Types } from 'mongoose';
+import { nanoid } from 'nanoid';
 import { PrincipalType, PrincipalModel } from 'librechat-data-provider';
-import type { Model, DeleteResult, ClientSession } from 'mongoose';
 import type { IAclEntry } from '~/types';
 
-export function createAclEntryMethods(mongoose: typeof import('mongoose')) {
+const aclStore = new Map<string, IAclEntry>();
+
+export function createAclEntryMethods() {
+  /**
+   * Generic find for ACL entries
+   */
+  async function findAclEntries(filter: any = {}): Promise<IAclEntry[]> {
+    return Array.from(aclStore.values()).filter(entry => {
+      for (const key in filter) {
+        const filterVal = filter[key];
+        const entryVal = (entry as any)[key];
+        if (typeof filterVal === 'object' && filterVal !== null) {
+           // Simplified operator handling
+           if (filterVal.$in && Array.isArray(filterVal.$in)) {
+             if (!filterVal.$in.includes(entryVal)) return false;
+             continue;
+           }
+           if (filterVal.$bitsAllSet !== undefined) {
+             if ((entryVal & filterVal.$bitsAllSet) !== filterVal.$bitsAllSet) return false;
+             continue;
+           }
+        } else if (entryVal !== filterVal) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  async function findOneAclEntry(filter: any = {}): Promise<IAclEntry | null> {
+    const entries = await findAclEntries(filter);
+    return entries[0] || null;
+  }
+
+  async function deleteManyAclEntries(filter: any = {}) {
+    const entries = await findAclEntries(filter);
+    for (const entry of entries) {
+      aclStore.delete(entry._id as string);
+    }
+    return { deletedCount: entries.length };
+  }
+
+  async function findOneAndDeleteAclEntry(filter: any = {}) {
+    const entry = await findOneAclEntry(filter);
+    if (entry) {
+      aclStore.delete(entry._id as string);
+    }
+    return entry;
+  }
+
   /**
    * Find ACL entries for a specific principal (user or group)
-   * @param principalType - The type of principal ('user', 'group')
-   * @param principalId - The ID of the principal
-   * @param resourceType - Optional filter by resource type
-   * @returns Array of ACL entries
    */
   async function findEntriesByPrincipal(
     principalType: string,
-    principalId: string | Types.ObjectId,
+    principalId: string,
     resourceType?: string,
   ): Promise<IAclEntry[]> {
-    const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
-    const query: Record<string, unknown> = { principalType, principalId };
-    if (resourceType) {
-      query.resourceType = resourceType;
-    }
-    return await AclEntry.find(query).lean();
+    return findAclEntries({ principalType, principalId, ...(resourceType && { resourceType }) });
   }
 
   /**
    * Find ACL entries for a specific resource
-   * @param resourceType - The type of resource ('agent', 'project', 'file')
-   * @param resourceId - The ID of the resource
-   * @returns Array of ACL entries
    */
   async function findEntriesByResource(
     resourceType: string,
-    resourceId: string | Types.ObjectId,
+    resourceId: string,
   ): Promise<IAclEntry[]> {
-    const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
-    return await AclEntry.find({ resourceType, resourceId }).lean();
+    return findAclEntries({ resourceType, resourceId });
   }
 
   /**
    * Find all ACL entries for a set of principals (including public)
-   * @param principalsList - List of principals, each containing { principalType, principalId }
-   * @param resourceType - The type of resource
-   * @param resourceId - The ID of the resource
-   * @returns Array of matching ACL entries
    */
   async function findEntriesByPrincipalsAndResource(
-    principalsList: Array<{ principalType: string; principalId?: string | Types.ObjectId }>,
+    principalsList: Array<{ principalType: string; principalId?: string }>,
     resourceType: string,
-    resourceId: string | Types.ObjectId,
+    resourceId: string,
   ): Promise<IAclEntry[]> {
-    const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
-    const principalsQuery = principalsList.map((p) => ({
-      principalType: p.principalType,
-      ...(p.principalType !== PrincipalType.PUBLIC && { principalId: p.principalId }),
-    }));
-
-    return await AclEntry.find({
-      $or: principalsQuery,
-      resourceType,
-      resourceId,
-    }).lean();
+    return Array.from(aclStore.values()).filter((entry) => {
+      if (entry.resourceType !== resourceType || entry.resourceId !== resourceId) {
+        return false;
+      }
+      return principalsList.some((p) => {
+        if (p.principalType === PrincipalType.PUBLIC) {
+          return entry.principalType === PrincipalType.PUBLIC;
+        }
+        return entry.principalType === p.principalType && entry.principalId === p.principalId;
+      });
+    });
   }
 
   /**
    * Check if a set of principals has a specific permission on a resource
-   * @param principalsList - List of principals, each containing { principalType, principalId }
-   * @param resourceType - The type of resource
-   * @param resourceId - The ID of the resource
-   * @param permissionBit - The permission bit to check (use PermissionBits enum)
-   * @returns Whether any of the principals has the permission
    */
   async function hasPermission(
-    principalsList: Array<{ principalType: string; principalId?: string | Types.ObjectId }>,
+    principalsList: Array<{ principalType: string; principalId?: string }>,
     resourceType: string,
-    resourceId: string | Types.ObjectId,
+    resourceId: string,
     permissionBit: number,
   ): Promise<boolean> {
-    const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
-    const principalsQuery = principalsList.map((p) => ({
-      principalType: p.principalType,
-      ...(p.principalType !== PrincipalType.PUBLIC && { principalId: p.principalId }),
-    }));
-
-    const entry = await AclEntry.findOne({
-      $or: principalsQuery,
+    const entries = await findEntriesByPrincipalsAndResource(
+      principalsList,
       resourceType,
       resourceId,
-      permBits: { $bitsAllSet: permissionBit },
-    }).lean();
-
-    return !!entry;
+    );
+    return entries.some((entry) => (entry.permBits & permissionBit) === permissionBit);
   }
 
   /**
    * Get the combined effective permissions for a set of principals on a resource
-   * @param principalsList - List of principals, each containing { principalType, principalId }
-   * @param resourceType - The type of resource
-   * @param resourceId - The ID of the resource
-   * @returns {Promise<number>} Effective permission bitmask
    */
   async function getEffectivePermissions(
-    principalsList: Array<{ principalType: string; principalId?: string | Types.ObjectId }>,
+    principalsList: Array<{ principalType: string; principalId?: string }>,
     resourceType: string,
-    resourceId: string | Types.ObjectId,
+    resourceId: string,
   ): Promise<number> {
     const aclEntries = await findEntriesByPrincipalsAndResource(
       principalsList,
@@ -120,49 +134,31 @@ export function createAclEntryMethods(mongoose: typeof import('mongoose')) {
 
   /**
    * Get effective permissions for multiple resources in a single query (BATCH)
-   * Returns a map of resourceId → effectivePermissionBits
-   *
-   * @param principalsList - List of principals (user + groups + public)
-   * @param resourceType - The type of resource ('MCPSERVER', 'AGENT', etc.)
-   * @param resourceIds - Array of resource IDs to check
-   * @returns {Promise<Map<string, number>>} Map of resourceId → permission bits
-   *
-   * @example
-   * const principals = await getUserPrincipals({ userId, role });
-   * const serverIds = [id1, id2, id3];
-   * const permMap = await getEffectivePermissionsForResources(
-   *   principals,
-   *   ResourceType.MCPSERVER,
-   *   serverIds
-   * );
-   * // permMap.get(id1.toString()) → 7 (VIEW|EDIT|DELETE)
    */
   async function getEffectivePermissionsForResources(
-    principalsList: Array<{ principalType: string; principalId?: string | Types.ObjectId }>,
+    principalsList: Array<{ principalType: string; principalId?: string }>,
     resourceType: string,
-    resourceIds: Array<string | Types.ObjectId>,
+    resourceIds: Array<string>,
   ): Promise<Map<string, number>> {
+    const permissionsMap = new Map<string, number>();
     if (!Array.isArray(resourceIds) || resourceIds.length === 0) {
-      return new Map();
+      return permissionsMap;
     }
 
-    const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
-    const principalsQuery = principalsList.map((p) => ({
-      principalType: p.principalType,
-      ...(p.principalType !== PrincipalType.PUBLIC && { principalId: p.principalId }),
-    }));
+    const allEntries = Array.from(aclStore.values()).filter((entry) => {
+      if (entry.resourceType !== resourceType || !resourceIds.includes(entry.resourceId)) {
+        return false;
+      }
+      return principalsList.some((p) => {
+        if (p.principalType === PrincipalType.PUBLIC) {
+          return entry.principalType === PrincipalType.PUBLIC;
+        }
+        return entry.principalType === p.principalType && entry.principalId === p.principalId;
+      });
+    });
 
-    // Batch query for all resources at once
-    const aclEntries = await AclEntry.find({
-      $or: principalsQuery,
-      resourceType,
-      resourceId: { $in: resourceIds },
-    }).lean();
-
-    // Compute effective permissions per resource
-    const permissionsMap = new Map<string, number>();
-    for (const entry of aclEntries) {
-      const rid = entry.resourceId.toString();
+    for (const entry of allEntries) {
+      const rid = entry.resourceId;
       const currentBits = permissionsMap.get(rid) || 0;
       permissionsMap.set(rid, currentBits | entry.permBits);
     }
@@ -172,182 +168,147 @@ export function createAclEntryMethods(mongoose: typeof import('mongoose')) {
 
   /**
    * Grant permission to a principal for a resource
-   * @param principalType - The type of principal ('user', 'group', 'public')
-   * @param principalId - The ID of the principal (null for 'public')
-   * @param resourceType - The type of resource
-   * @param resourceId - The ID of the resource
-   * @param permBits - The permission bits to grant
-   * @param grantedBy - The ID of the user granting the permission
-   * @param session - Optional MongoDB session for transactions
-   * @param roleId - Optional role ID to associate with this permission
-   * @returns The created or updated ACL entry
    */
   async function grantPermission(
     principalType: string,
-    principalId: string | Types.ObjectId | null,
+    principalId: string | null,
     resourceType: string,
-    resourceId: string | Types.ObjectId,
+    resourceId: string,
     permBits: number,
-    grantedBy: string | Types.ObjectId,
-    session?: ClientSession,
-    roleId?: string | Types.ObjectId,
+    grantedBy: string,
+    _session?: any,
+    roleId?: string,
   ): Promise<IAclEntry | null> {
-    const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
-    const query: Record<string, unknown> = {
-      principalType,
-      resourceType,
-      resourceId,
-    };
+    const existing = Array.from(aclStore.values()).find(
+      (e) =>
+        e.principalType === principalType &&
+        e.principalId === principalId &&
+        e.resourceType === resourceType &&
+        e.resourceId === resourceId,
+    );
 
-    if (principalType !== PrincipalType.PUBLIC) {
-      query.principalId =
-        typeof principalId === 'string' && principalType !== PrincipalType.ROLE
-          ? new Types.ObjectId(principalId)
-          : principalId;
-      if (principalType === PrincipalType.USER) {
-        query.principalModel = PrincipalModel.USER;
-      } else if (principalType === PrincipalType.GROUP) {
-        query.principalModel = PrincipalModel.GROUP;
-      } else if (principalType === PrincipalType.ROLE) {
-        query.principalModel = PrincipalModel.ROLE;
-      }
+    if (existing) {
+      existing.permBits = permBits;
+      existing.grantedBy = grantedBy;
+      existing.grantedAt = new Date();
+      if (roleId) existing.roleId = roleId;
+      return existing;
     }
 
-    const update = {
-      $set: {
-        permBits,
-        grantedBy,
-        grantedAt: new Date(),
-        ...(roleId && { roleId }),
-      },
+    const newId = nanoid();
+    const newEntry: IAclEntry = {
+      _id: newId,
+      principalType: principalType as any,
+      principalId: principalId as any,
+      resourceType: resourceType as any,
+      resourceId,
+      permBits,
+      grantedBy,
+      grantedAt: new Date(),
+      roleId,
     };
 
-    const options = {
-      upsert: true,
-      new: true,
-      ...(session ? { session } : {}),
-    };
+    if (principalType === PrincipalType.USER) {
+      newEntry.principalModel = PrincipalModel.USER;
+    } else if (principalType === PrincipalType.GROUP) {
+      newEntry.principalModel = PrincipalModel.GROUP;
+    } else if (principalType === PrincipalType.ROLE) {
+      newEntry.principalModel = PrincipalModel.ROLE;
+    }
 
-    return await AclEntry.findOneAndUpdate(query, update, options);
+    aclStore.set(newId, newEntry);
+    return newEntry;
   }
 
   /**
    * Revoke permissions from a principal for a resource
-   * @param principalType - The type of principal ('user', 'group', 'public')
-   * @param principalId - The ID of the principal (null for 'public')
-   * @param resourceType - The type of resource
-   * @param resourceId - The ID of the resource
-   * @param session - Optional MongoDB session for transactions
-   * @returns The result of the delete operation
    */
   async function revokePermission(
     principalType: string,
-    principalId: string | Types.ObjectId | null,
+    principalId: string | null,
     resourceType: string,
-    resourceId: string | Types.ObjectId,
-    session?: ClientSession,
-  ): Promise<DeleteResult> {
-    const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
-    const query: Record<string, unknown> = {
-      principalType,
-      resourceType,
-      resourceId,
-    };
-
-    if (principalType !== PrincipalType.PUBLIC) {
-      query.principalId =
-        typeof principalId === 'string' && principalType !== PrincipalType.ROLE
-          ? new Types.ObjectId(principalId)
-          : principalId;
-    }
-
-    const options = session ? { session } : {};
-
-    return await AclEntry.deleteOne(query, options);
+    resourceId: string,
+    _session?: any,
+  ): Promise<{ deletedCount: number }> {
+    return deleteManyAclEntries({ principalType, principalId, resourceType, resourceId });
   }
 
   /**
    * Modify existing permission bits for a principal on a resource
-   * @param principalType - The type of principal ('user', 'group', 'public')
-   * @param principalId - The ID of the principal (null for 'public')
-   * @param resourceType - The type of resource
-   * @param resourceId - The ID of the resource
-   * @param addBits - Permission bits to add
-   * @param removeBits - Permission bits to remove
-   * @param session - Optional MongoDB session for transactions
-   * @returns The updated ACL entry
    */
   async function modifyPermissionBits(
     principalType: string,
-    principalId: string | Types.ObjectId | null,
+    principalId: string | null,
     resourceType: string,
-    resourceId: string | Types.ObjectId,
+    resourceId: string,
     addBits?: number | null,
     removeBits?: number | null,
-    session?: ClientSession,
+    _session?: any,
   ): Promise<IAclEntry | null> {
-    const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
-    const query: Record<string, unknown> = {
-      principalType,
-      resourceType,
-      resourceId,
-    };
+    let entry = Array.from(aclStore.values()).find(
+      (e) =>
+        e.principalType === principalType &&
+        e.principalId === principalId &&
+        e.resourceType === resourceType &&
+        e.resourceId === resourceId,
+    );
 
-    if (principalType !== PrincipalType.PUBLIC) {
-      query.principalId =
-        typeof principalId === 'string' && principalType !== PrincipalType.ROLE
-          ? new Types.ObjectId(principalId)
-          : principalId;
+    if (!entry) {
+      return null;
     }
 
-    const update: Record<string, unknown> = {};
-
     if (addBits) {
-      update.$bit = { permBits: { or: addBits } };
+      entry.permBits |= addBits;
     }
 
     if (removeBits) {
-      if (!update.$bit) update.$bit = {};
-      const bitUpdate = update.$bit as Record<string, unknown>;
-      bitUpdate.permBits = { ...(bitUpdate.permBits as Record<string, unknown>), and: ~removeBits };
+      entry.permBits &= ~removeBits;
     }
 
-    const options = {
-      new: true,
-      ...(session ? { session } : {}),
-    };
-
-    return await AclEntry.findOneAndUpdate(query, update, options);
+    return entry;
   }
 
   /**
    * Find all resources of a specific type that a set of principals has access to
-   * @param principalsList - List of principals, each containing { principalType, principalId }
-   * @param resourceType - The type of resource
-   * @param requiredPermBit - Required permission bit (use PermissionBits enum)
-   * @returns Array of resource IDs
    */
   async function findAccessibleResources(
-    principalsList: Array<{ principalType: string; principalId?: string | Types.ObjectId }>,
+    principalsList: Array<{ principalType: string; principalId?: string }>,
     resourceType: string,
     requiredPermBit: number,
-  ): Promise<Types.ObjectId[]> {
-    const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
-    const principalsQuery = principalsList.map((p) => ({
-      principalType: p.principalType,
-      ...(p.principalType !== PrincipalType.PUBLIC && { principalId: p.principalId }),
-    }));
+  ): Promise<string[]> {
+    const accessibleResourceIds = new Set<string>();
+    const entries = Array.from(aclStore.values()).filter((entry) => {
+      if (entry.resourceType !== resourceType || (entry.permBits & requiredPermBit) !== requiredPermBit) {
+        return false;
+      }
+      return principalsList.some((p) => {
+        if (p.principalType === PrincipalType.PUBLIC) {
+          return entry.principalType === PrincipalType.PUBLIC;
+        }
+        return entry.principalType === p.principalType && entry.principalId === p.principalId;
+      });
+    });
 
-    const entries = await AclEntry.find({
-      $or: principalsQuery,
-      resourceType,
-      permBits: { $bitsAllSet: requiredPermBit },
-    }).distinct('resourceId');
+    for (const entry of entries) {
+      accessibleResourceIds.add(entry.resourceId);
+    }
 
-    return entries;
+    return Array.from(accessibleResourceIds);
+  }
+
+  async function findOneAndUpdateAclEntry(filter: any, update: any) {
+    const entry = await findOneAclEntry(filter);
+    if (!entry) return null;
+    const data = update.$set || update;
+    Object.assign(entry, data);
+    return entry;
   }
 
   return {
+    findAclEntries,
+    findOneAclEntry,
+    deleteManyAclEntries,
+    findOneAndDeleteAclEntry,
     findEntriesByPrincipal,
     findEntriesByResource,
     findEntriesByPrincipalsAndResource,
@@ -358,6 +319,7 @@ export function createAclEntryMethods(mongoose: typeof import('mongoose')) {
     revokePermission,
     modifyPermissionBits,
     findAccessibleResources,
+    findOneAndUpdateAclEntry,
   };
 }
 

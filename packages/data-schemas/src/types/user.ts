@@ -1,7 +1,8 @@
-import type { Document, Types } from 'mongoose';
 import { CursorPaginationParams } from '~/common';
 
-export interface IUser extends Document {
+export interface IUser {
+  _id: string;
+  id: string;
   name?: string;
   username?: string;
   email: string;
@@ -43,6 +44,8 @@ export interface IUser extends Document {
   updatedAt?: Date;
   /** Field for external source identification (for consistency with TPrincipal schema) */
   idOnTheSource?: string;
+  federatedTokens?: unknown;
+  openidTokens?: unknown;
 }
 
 export interface BalanceConfig {
@@ -79,7 +82,7 @@ export interface UserDeleteResult {
 }
 
 export interface UserFilterOptions extends CursorPaginationParams {
-  _id?: Types.ObjectId | string;
+  _id?: string;
   // Includes email, username and name
   search?: string;
   role?: string;

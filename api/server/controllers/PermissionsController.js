@@ -2,7 +2,6 @@
  * @import { TUpdateResourcePermissionsRequest, TUpdateResourcePermissionsResponse } from 'librechat-data-provider'
  */
 
-const mongoose = require('mongoose');
 const { logger } = require('@librechat/data-schemas');
 const { ResourceType, PrincipalType, PermissionBits } = require('librechat-data-provider');
 const { enrichRemoteAgentPrincipals, backfillRemoteAgentPermissions } = require('@librechat/api');
@@ -19,12 +18,15 @@ const {
   searchPrincipals: searchLocalPrincipals,
   sortPrincipalsByRelevance,
   calculateRelevanceScore,
+  aclEntry: AclEntry,
+  accessRole: AccessRole,
+  user: User,
+  userGroup: Group,
 } = require('~/models');
 const {
   entraIdPrincipalFeatureEnabled,
   searchEntraIdPrincipals,
 } = require('~/server/services/GraphApiService');
-const { AclEntry, AccessRole } = require('~/db/models');
 
 /**
  * Generic controller for resource permission endpoints
@@ -46,13 +48,6 @@ const validateResourceType = (resourceType) => {
 /**
  * Bulk update permissions for a resource (grant, update, remove)
  * @route PUT /api/{resourceType}/{resourceId}/permissions
- * @param {Object} req - Express request object
- * @param {Object} req.params - Route parameters
- * @param {string} req.params.resourceType - Resource type (e.g., 'agent')
- * @param {string} req.params.resourceId - Resource ID
- * @param {TUpdateResourcePermissionsRequest} req.body - Request body
- * @param {Object} res - Express response object
- * @returns {Promise<TUpdateResourcePermissionsResponse>} Updated permissions response
  */
 const updateResourcePermissions = async (req, res) => {
   try {
@@ -63,16 +58,13 @@ const updateResourcePermissions = async (req, res) => {
     const { updated, removed, public: isPublic, publicAccessRoleId } = req.body;
     const { id: userId } = req.user;
 
-    // Prepare principals for the service call
     const updatedPrincipals = [];
     const revokedPrincipals = [];
 
-    // Add updated principals
     if (updated && Array.isArray(updated)) {
       updatedPrincipals.push(...updated);
     }
 
-    // Add public permission if enabled
     if (isPublic && publicAccessRoleId) {
       updatedPrincipals.push({
         type: PrincipalType.PUBLIC,
@@ -81,7 +73,6 @@ const updateResourcePermissions = async (req, res) => {
       });
     }
 
-    // Prepare authentication context for enhanced group member fetching
     const useEntraId = entraIdPrincipalFeatureEnabled(req.user);
     const authHeader = req.headers.authorization;
     const accessToken =
@@ -94,27 +85,24 @@ const updateResourcePermissions = async (req, res) => {
           }
         : null;
 
-    // Ensure updated principals exist in the database before processing permissions
     const validatedPrincipals = [];
     for (const principal of updatedPrincipals) {
       try {
         let principalId;
 
         if (principal.type === PrincipalType.PUBLIC) {
-          principalId = null; // Public principals don't need database records
+          principalId = null;
         } else if (principal.type === PrincipalType.ROLE) {
-          principalId = principal.id; // Role principals use role name as ID
+          principalId = principal.id;
         } else if (principal.type === PrincipalType.USER) {
           principalId = await ensurePrincipalExists(principal);
         } else if (principal.type === PrincipalType.GROUP) {
-          // Pass authContext to enable member fetching for Entra ID groups when available
           principalId = await ensureGroupPrincipalExists(principal, authContext);
         } else {
           logger.error(`Unsupported principal type: ${principal.type}`);
-          continue; // Skip invalid principal types
+          continue;
         }
 
-        // Update the principal with the validated ID for ACL operations
         validatedPrincipals.push({
           ...principal,
           id: principalId,
@@ -129,17 +117,14 @@ const updateResourcePermissions = async (req, res) => {
           },
           error: error.message,
         });
-        // Continue with other principals instead of failing the entire operation
         continue;
       }
     }
 
-    // Add removed principals
     if (removed && Array.isArray(removed)) {
       revokedPrincipals.push(...removed);
     }
 
-    // If public is disabled, add public to revoked list
     if (!isPublic) {
       revokedPrincipals.push({
         type: PrincipalType.PUBLIC,
@@ -177,7 +162,6 @@ const updateResourcePermissions = async (req, res) => {
 
 /**
  * Get principals with their permission roles for a resource (UI-friendly format)
- * Uses efficient aggregation pipeline to join User/Group data in single query
  * @route GET /api/permissions/{resourceType}/{resourceId}
  */
 const getResourcePermissions = async (req, res) => {
@@ -185,98 +169,60 @@ const getResourcePermissions = async (req, res) => {
     const { resourceType, resourceId } = req.params;
     validateResourceType(resourceType);
 
-    // Use aggregation pipeline for efficient single-query data retrieval
-    const results = await AclEntry.aggregate([
-      // Match ACL entries for this resource
-      {
-        $match: {
-          resourceType,
-          resourceId: mongoose.Types.ObjectId.isValid(resourceId)
-            ? mongoose.Types.ObjectId.createFromHexString(resourceId)
-            : resourceId,
-        },
-      },
-      // Lookup AccessRole information
-      {
-        $lookup: {
-          from: 'accessroles',
-          localField: 'roleId',
-          foreignField: '_id',
-          as: 'role',
-        },
-      },
-      // Lookup User information (for user principals)
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'principalId',
-          foreignField: '_id',
-          as: 'userInfo',
-        },
-      },
-      // Lookup Group information (for group principals)
-      {
-        $lookup: {
-          from: 'groups',
-          localField: 'principalId',
-          foreignField: '_id',
-          as: 'groupInfo',
-        },
-      },
-      // Project final structure
-      {
-        $project: {
-          principalType: 1,
-          principalId: 1,
-          accessRoleId: { $arrayElemAt: ['$role.accessRoleId', 0] },
-          userInfo: { $arrayElemAt: ['$userInfo', 0] },
-          groupInfo: { $arrayElemAt: ['$groupInfo', 0] },
-        },
-      },
-    ]);
+    // In stateless mode, we simulate the aggregation with manual lookups
+    const aclEntries = await AclEntry.find({
+      resourceType,
+      resourceId,
+    });
 
-    let principals = [];
+    const principals = [];
     let publicPermission = null;
 
-    // Process aggregation results
-    for (const result of results) {
-      if (result.principalType === PrincipalType.PUBLIC) {
+    for (const entry of aclEntries) {
+      const role = await AccessRole.findOne({ _id: entry.roleId });
+      const accessRoleId = role ? role.accessRoleId : null;
+
+      if (entry.principalType === PrincipalType.PUBLIC) {
         publicPermission = {
           public: true,
-          publicAccessRoleId: result.accessRoleId,
+          publicAccessRoleId: accessRoleId,
         };
-      } else if (result.principalType === PrincipalType.USER && result.userInfo) {
-        principals.push({
-          type: PrincipalType.USER,
-          id: result.userInfo._id.toString(),
-          name: result.userInfo.name || result.userInfo.username,
-          email: result.userInfo.email,
-          avatar: result.userInfo.avatar,
-          source: !result.userInfo._id ? 'entra' : 'local',
-          idOnTheSource: result.userInfo.idOnTheSource || result.userInfo._id.toString(),
-          accessRoleId: result.accessRoleId,
-        });
-      } else if (result.principalType === PrincipalType.GROUP && result.groupInfo) {
-        principals.push({
-          type: PrincipalType.GROUP,
-          id: result.groupInfo._id.toString(),
-          name: result.groupInfo.name,
-          email: result.groupInfo.email,
-          description: result.groupInfo.description,
-          avatar: result.groupInfo.avatar,
-          source: result.groupInfo.source || 'local',
-          idOnTheSource: result.groupInfo.idOnTheSource || result.groupInfo._id.toString(),
-          accessRoleId: result.accessRoleId,
-        });
-      } else if (result.principalType === PrincipalType.ROLE) {
+      } else if (entry.principalType === PrincipalType.USER) {
+        const userInfo = await User.findOne({ _id: entry.principalId });
+        if (userInfo) {
+          principals.push({
+            type: PrincipalType.USER,
+            id: userInfo._id.toString(),
+            name: userInfo.name || userInfo.username,
+            email: userInfo.email,
+            avatar: userInfo.avatar,
+            source: 'local', // simplification
+            idOnTheSource: userInfo.idOnTheSource || userInfo._id.toString(),
+            accessRoleId,
+          });
+        }
+      } else if (entry.principalType === PrincipalType.GROUP) {
+        const groupInfo = await Group.findOne({ _id: entry.principalId });
+        if (groupInfo) {
+          principals.push({
+            type: PrincipalType.GROUP,
+            id: groupInfo._id.toString(),
+            name: groupInfo.name,
+            email: groupInfo.email,
+            description: groupInfo.description,
+            avatar: groupInfo.avatar,
+            source: groupInfo.source || 'local',
+            idOnTheSource: groupInfo.idOnTheSource || groupInfo._id.toString(),
+            accessRoleId,
+          });
+        }
+      } else if (entry.principalType === PrincipalType.ROLE) {
         principals.push({
           type: PrincipalType.ROLE,
-          /** Role name as ID */
-          id: result.principalId,
-          /** Display the role name */
-          name: result.principalId,
-          description: `System role: ${result.principalId}`,
-          accessRoleId: result.accessRoleId,
+          id: entry.principalId,
+          name: entry.principalId,
+          description: `System role: ${entry.principalId}`,
+          accessRoleId,
         });
       }
     }
@@ -284,11 +230,19 @@ const getResourcePermissions = async (req, res) => {
     if (resourceType === ResourceType.REMOTE_AGENT) {
       const enricherDeps = { AclEntry, AccessRole, logger };
       const enrichResult = await enrichRemoteAgentPrincipals(enricherDeps, resourceId, principals);
-      principals = enrichResult.principals;
+      // principals = enrichResult.principals; // reassignment if needed
       backfillRemoteAgentPermissions(enricherDeps, resourceId, enrichResult.entriesToBackfill);
+      return res.status(200).json({
+          resourceType,
+          resourceId,
+          principals: enrichResult.principals,
+          public: publicPermission?.public || false,
+          ...(publicPermission?.publicAccessRoleId && {
+            publicAccessRoleId: publicPermission.publicAccessRoleId,
+          }),
+      });
     }
 
-    // Return response in format expected by frontend
     const response = {
       resourceType,
       resourceId,
@@ -369,7 +323,6 @@ const getUserEffectivePermissions = async (req, res) => {
 
 /**
  * Search for users and groups to grant permissions
- * Supports hybrid local database + Entra ID search when configured
  * @route GET /api/permissions/search-principals
  */
 const searchPrincipals = async (req, res) => {
@@ -496,7 +449,6 @@ const getAllEffectivePermissions = async (req, res) => {
 
     const { id: userId } = req.user;
 
-    // Find all resources the user has at least VIEW access to
     const accessibleResourceIds = await findAccessibleResources({
       userId,
       role: req.user.role,
@@ -508,7 +460,6 @@ const getAllEffectivePermissions = async (req, res) => {
       return res.status(200).json({});
     }
 
-    // Get effective permissions for all accessible resources
     const permissionsMap = await getResourcePermissionsMap({
       userId,
       role: req.user.role,
@@ -516,7 +467,6 @@ const getAllEffectivePermissions = async (req, res) => {
       resourceIds: accessibleResourceIds,
     });
 
-    // Convert Map to plain object for JSON response
     const result = {};
     for (const [resourceId, permBits] of permissionsMap) {
       result[resourceId] = permBits;

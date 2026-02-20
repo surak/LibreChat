@@ -1,7 +1,6 @@
-import mongoose, { Document } from 'mongoose';
-
-export interface IAction extends Document {
-  user: mongoose.Types.ObjectId;
+export interface IAction {
+  _id: string;
+  user: string;
   action_id: string;
   type: string;
   settings?: unknown;

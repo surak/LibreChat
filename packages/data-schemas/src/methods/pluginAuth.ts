@@ -1,4 +1,3 @@
-import type { DeleteResult, Model } from 'mongoose';
 import type {
   FindPluginAuthsByKeysParams,
   UpdatePluginAuthParams,
@@ -6,11 +5,14 @@ import type {
   FindPluginAuthParams,
   IPluginAuth,
 } from '~/types';
+import { nanoid } from 'nanoid';
 
-// Factory function that takes mongoose instance and returns the methods
-export function createPluginAuthMethods(mongoose: typeof import('mongoose')) {
+const pluginAuthStore = new Map<string, IPluginAuth>();
+
+// Factory function that returns the methods
+export function createPluginAuthMethods() {
   /**
-   * Finds a single plugin auth entry by userId and authField (and optionally pluginKey)
+   * Finds a single plugin auth entry
    */
   async function findOnePluginAuth({
     userId,
@@ -18,12 +20,11 @@ export function createPluginAuthMethods(mongoose: typeof import('mongoose')) {
     pluginKey,
   }: FindPluginAuthParams): Promise<IPluginAuth | null> {
     try {
-      const PluginAuth: Model<IPluginAuth> = mongoose.models.PluginAuth;
-      return await PluginAuth.findOne({
-        userId,
-        authField,
-        ...(pluginKey && { pluginKey }),
-      }).lean();
+      return Array.from(pluginAuthStore.values()).find(a =>
+        a.userId === userId &&
+        a.authField === authField &&
+        (!pluginKey || a.pluginKey === pluginKey)
+      ) || null;
     } catch (error) {
       throw new Error(
         `Failed to find plugin auth: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -32,7 +33,7 @@ export function createPluginAuthMethods(mongoose: typeof import('mongoose')) {
   }
 
   /**
-   * Finds multiple plugin auth entries by userId and pluginKeys
+   * Finds multiple plugin auth entries
    */
   async function findPluginAuthsByKeys({
     userId,
@@ -43,11 +44,10 @@ export function createPluginAuthMethods(mongoose: typeof import('mongoose')) {
         return [];
       }
 
-      const PluginAuth: Model<IPluginAuth> = mongoose.models.PluginAuth;
-      return await PluginAuth.find({
-        userId,
-        pluginKey: { $in: pluginKeys },
-      }).lean();
+      return Array.from(pluginAuthStore.values()).filter(a =>
+        a.userId === userId &&
+        pluginKeys.includes(a.pluginKey)
+      );
     } catch (error) {
       throw new Error(
         `Failed to find plugin auths: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -65,24 +65,25 @@ export function createPluginAuthMethods(mongoose: typeof import('mongoose')) {
     value,
   }: UpdatePluginAuthParams): Promise<IPluginAuth> {
     try {
-      const PluginAuth: Model<IPluginAuth> = mongoose.models.PluginAuth;
-      const existingAuth = await PluginAuth.findOne({ userId, pluginKey, authField }).lean();
+      let existing = Array.from(pluginAuthStore.values()).find(a =>
+         a.userId === userId && a.pluginKey === pluginKey && a.authField === authField
+      );
 
-      if (existingAuth) {
-        return await PluginAuth.findOneAndUpdate(
-          { userId, pluginKey, authField },
-          { $set: { value } },
-          { new: true, upsert: true },
-        ).lean();
+      if (existing) {
+        existing.value = value;
+        pluginAuthStore.set(existing._id as string, existing);
+        return existing;
       } else {
-        const newPluginAuth = await new PluginAuth({
+        const id = nanoid();
+        const newAuth: IPluginAuth = {
+          _id: id,
           userId,
           authField,
           value,
           pluginKey,
-        });
-        await newPluginAuth.save();
-        return newPluginAuth.toObject();
+        } as any;
+        pluginAuthStore.set(id, newAuth);
+        return newAuth;
       }
     } catch (error) {
       throw new Error(
@@ -92,29 +93,31 @@ export function createPluginAuthMethods(mongoose: typeof import('mongoose')) {
   }
 
   /**
-   * Deletes plugin auth entries based on provided parameters
+   * Deletes plugin auth entries
    */
   async function deletePluginAuth({
     userId,
     authField,
     pluginKey,
     all = false,
-  }: DeletePluginAuthParams): Promise<DeleteResult> {
+  }: DeletePluginAuthParams): Promise<any> {
     try {
-      const PluginAuth: Model<IPluginAuth> = mongoose.models.PluginAuth;
-      if (all) {
-        const filter: DeletePluginAuthParams = { userId };
-        if (pluginKey) {
-          filter.pluginKey = pluginKey;
+      let deletedCount = 0;
+      for (const [id, auth] of pluginAuthStore.entries()) {
+        if (all) {
+           if (auth.userId === userId && (!pluginKey || auth.pluginKey === pluginKey)) {
+              pluginAuthStore.delete(id);
+              deletedCount++;
+           }
+        } else {
+           if (auth.userId === userId && auth.authField === authField) {
+              pluginAuthStore.delete(id);
+              deletedCount++;
+              break;
+           }
         }
-        return await PluginAuth.deleteMany(filter);
       }
-
-      if (!authField) {
-        throw new Error('authField is required when all is false');
-      }
-
-      return await PluginAuth.deleteOne({ userId, authField });
+      return { deletedCount };
     } catch (error) {
       throw new Error(
         `Failed to delete plugin auth: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -125,10 +128,16 @@ export function createPluginAuthMethods(mongoose: typeof import('mongoose')) {
   /**
    * Deletes all plugin auth entries for a user
    */
-  async function deleteAllUserPluginAuths(userId: string): Promise<DeleteResult> {
+  async function deleteAllUserPluginAuths(userId: string): Promise<any> {
     try {
-      const PluginAuth: Model<IPluginAuth> = mongoose.models.PluginAuth;
-      return await PluginAuth.deleteMany({ userId });
+      let deletedCount = 0;
+      for (const [id, auth] of pluginAuthStore.entries()) {
+        if (auth.userId === userId) {
+          pluginAuthStore.delete(id);
+          deletedCount++;
+        }
+      }
+      return { deletedCount };
     } catch (error) {
       throw new Error(
         `Failed to delete all user plugin auths: ${error instanceof Error ? error.message : 'Unknown error'}`,

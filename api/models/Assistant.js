@@ -1,4 +1,4 @@
-const { Assistant } = require('~/db/models');
+const { assistant: Assistant } = require('./index');
 
 /**
  * Update an assistant with new data without overwriting existing properties,
@@ -11,8 +11,7 @@ const { Assistant } = require('~/db/models');
  * @returns {Promise<AssistantDocument>} The updated or newly created assistant document as a plain object.
  */
 const updateAssistantDoc = async (searchParams, updateData) => {
-  const options = { new: true, upsert: true };
-  return await Assistant.findOneAndUpdate(searchParams, updateData, options).lean();
+  return await Assistant.findOneAndUpdate(searchParams, updateData, { upsert: true });
 };
 
 /**
@@ -23,7 +22,7 @@ const updateAssistantDoc = async (searchParams, updateData) => {
  * @param {string} searchParams.user - The user ID of the assistant's author.
  * @returns {Promise<AssistantDocument|null>} The assistant document as a plain object, or null if not found.
  */
-const getAssistant = async (searchParams) => await Assistant.findOne(searchParams).lean();
+const getAssistant = async (searchParams) => await Assistant.findOne(searchParams);
 
 /**
  * Retrieves all assistants that match the given search parameters.
@@ -33,13 +32,7 @@ const getAssistant = async (searchParams) => await Assistant.findOne(searchParam
  * @returns {Promise<Array<AssistantDocument>>} A promise that resolves to an array of assistant documents as plain objects.
  */
 const getAssistants = async (searchParams, select = null) => {
-  let query = Assistant.find(searchParams);
-
-  if (select) {
-    query = query.select(select);
-  }
-
-  return await query.lean();
+  return await Assistant.find(searchParams);
 };
 
 /**

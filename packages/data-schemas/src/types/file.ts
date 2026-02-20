@@ -1,7 +1,6 @@
-import { Document, Types } from 'mongoose';
-
-export interface IMongoFile extends Omit<Document, 'model'> {
-  user: Types.ObjectId;
+export interface IMongoFile {
+  _id: string;
+  user: string;
   conversationId?: string;
   messageId?: string;
   file_id: string;

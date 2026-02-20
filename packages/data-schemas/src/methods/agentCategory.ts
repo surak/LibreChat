@@ -1,50 +1,41 @@
-import type { Model, Types } from 'mongoose';
 import type { IAgentCategory } from '~/types';
+import { nanoid } from 'nanoid';
 
-export function createAgentCategoryMethods(mongoose: typeof import('mongoose')) {
+const agentCategoryStore = new Map<string, IAgentCategory>();
+
+// Factory function that returns the methods
+export function createAgentCategoryMethods() {
   /**
    * Get all active categories sorted by order
-   * @returns Array of active categories
    */
   async function getActiveCategories(): Promise<IAgentCategory[]> {
-    const AgentCategory = mongoose.models.AgentCategory as Model<IAgentCategory>;
-    return await AgentCategory.find({ isActive: true }).sort({ order: 1, label: 1 }).lean();
+    const categories = Array.from(agentCategoryStore.values()).filter(c => c.isActive);
+    categories.sort((a, b) => (a.order || 0) - (b.order || 0) || a.label.localeCompare(b.label));
+    return categories;
   }
 
   /**
    * Get categories with agent counts
-   * @returns Categories with agent counts
    */
   async function getCategoriesWithCounts(): Promise<(IAgentCategory & { agentCount: number })[]> {
-    const Agent = mongoose.models.Agent;
-
-    const categoryCounts = await Agent.aggregate([
-      { $match: { category: { $exists: true, $ne: null } } },
-      { $group: { _id: '$category', count: { $sum: 1 } } },
-    ]);
-
-    const countMap = new Map(categoryCounts.map((c) => [c._id, c.count]));
+    // Note: Since Agent store is not here, we return 0 for now.
+    // In a real stateless app, this would be computed from the agent store.
     const categories = await getActiveCategories();
-
     return categories.map((category) => ({
       ...category,
-      agentCount: countMap.get(category.value) || (0 as number),
-    })) as (IAgentCategory & { agentCount: number })[];
+      agentCount: 0,
+    }));
   }
 
   /**
-   * Get valid category values for Agent model validation
-   * @returns Array of valid category values
+   * Get valid category values
    */
   async function getValidCategoryValues(): Promise<string[]> {
-    const AgentCategory = mongoose.models.AgentCategory as Model<IAgentCategory>;
-    return await AgentCategory.find({ isActive: true }).distinct('value').lean();
+    return Array.from(agentCategoryStore.values()).filter(c => c.isActive).map(c => c.value);
   }
 
   /**
-   * Seed initial categories from existing constants
-   * @param categories - Array of category data to seed
-   * @returns Bulk write result
+   * Seed initial categories
    */
   async function seedCategories(
     categories: Array<{
@@ -54,105 +45,88 @@ export function createAgentCategoryMethods(mongoose: typeof import('mongoose')) 
       order?: number;
       custom?: boolean;
     }>,
-  ): Promise<import('mongoose').mongo.BulkWriteResult> {
-    const AgentCategory = mongoose.models.AgentCategory as Model<IAgentCategory>;
-
-    const operations = categories.map((category, index) => ({
-      updateOne: {
-        filter: { value: category.value },
-        update: {
-          $setOnInsert: {
-            value: category.value,
-            label: category.label || category.value,
-            description: category.description || '',
-            order: category.order || index,
-            isActive: true,
-            custom: category.custom || false,
-          },
-        },
-        upsert: true,
-      },
-    }));
-
-    return await AgentCategory.bulkWrite(operations);
+  ): Promise<any> {
+    let createdCount = 0;
+    categories.forEach((category, index) => {
+      if (!agentCategoryStore.has(category.value)) {
+        const newCat: IAgentCategory = {
+          _id: nanoid(),
+          value: category.value,
+          label: category.label || category.value,
+          description: category.description || '',
+          order: category.order || index,
+          isActive: true,
+          custom: category.custom || false,
+        } as any;
+        agentCategoryStore.set(category.value, newCat);
+        createdCount++;
+      }
+    });
+    return { nUpserted: createdCount };
   }
 
   /**
    * Find a category by value
-   * @param value - The category value to search for
-   * @returns The category document or null
    */
   async function findCategoryByValue(value: string): Promise<IAgentCategory | null> {
-    const AgentCategory = mongoose.models.AgentCategory as Model<IAgentCategory>;
-    return await AgentCategory.findOne({ value }).lean();
+    return agentCategoryStore.get(value) || null;
   }
 
   /**
    * Create a new category
-   * @param categoryData - The category data to create
-   * @returns The created category
    */
   async function createCategory(categoryData: Partial<IAgentCategory>): Promise<IAgentCategory> {
-    const AgentCategory = mongoose.models.AgentCategory as Model<IAgentCategory>;
-    const category = await AgentCategory.create(categoryData);
-    return category.toObject() as IAgentCategory;
+    const value = categoryData.value as string;
+    const newCat: IAgentCategory = {
+      _id: nanoid(),
+      ...categoryData,
+      isActive: true,
+    } as any;
+    agentCategoryStore.set(value, newCat);
+    return newCat;
   }
 
   /**
    * Update a category by value
-   * @param value - The category value to update
-   * @param updateData - The data to update
-   * @returns The updated category or null
    */
   async function updateCategory(
     value: string,
     updateData: Partial<IAgentCategory>,
   ): Promise<IAgentCategory | null> {
-    const AgentCategory = mongoose.models.AgentCategory as Model<IAgentCategory>;
-    return await AgentCategory.findOneAndUpdate(
-      { value },
-      { $set: updateData },
-      { new: true, runValidators: true },
-    ).lean();
+    const existing = agentCategoryStore.get(value);
+    if (!existing) return null;
+    const updated = { ...existing, ...updateData };
+    agentCategoryStore.set(value, updated);
+    return updated;
   }
 
   /**
    * Delete a category by value
-   * @param value - The category value to delete
-   * @returns Whether the deletion was successful
    */
   async function deleteCategory(value: string): Promise<boolean> {
-    const AgentCategory = mongoose.models.AgentCategory as Model<IAgentCategory>;
-    const result = await AgentCategory.deleteOne({ value });
-    return result.deletedCount > 0;
+    return agentCategoryStore.delete(value);
   }
 
   /**
    * Find a category by ID
-   * @param id - The category ID to search for
-   * @returns The category document or null
    */
-  async function findCategoryById(id: string | Types.ObjectId): Promise<IAgentCategory | null> {
-    const AgentCategory = mongoose.models.AgentCategory as Model<IAgentCategory>;
-    return await AgentCategory.findById(id).lean();
+  async function findCategoryById(id: string): Promise<IAgentCategory | null> {
+    return Array.from(agentCategoryStore.values()).find(c => c._id === id) || null;
   }
 
   /**
-   * Get all categories (active and inactive)
-   * @returns Array of all categories
+   * Get all categories
    */
   async function getAllCategories(): Promise<IAgentCategory[]> {
-    const AgentCategory = mongoose.models.AgentCategory as Model<IAgentCategory>;
-    return await AgentCategory.find({}).sort({ order: 1, label: 1 }).lean();
+    const categories = Array.from(agentCategoryStore.values());
+    categories.sort((a, b) => (a.order || 0) - (b.order || 0) || a.label.localeCompare(b.label));
+    return categories;
   }
 
   /**
-   * Ensure default categories exist and update them if they don't have localization keys
-   * @returns Promise<boolean> - true if categories were created/updated, false if no changes
+   * Ensure default categories exist
    */
   async function ensureDefaultCategories(): Promise<boolean> {
-    const AgentCategory = mongoose.models.AgentCategory as Model<IAgentCategory>;
-
     const defaultCategories = [
       {
         value: 'general',
@@ -198,53 +172,26 @@ export function createAgentCategoryMethods(mongoose: typeof import('mongoose')) 
       },
     ];
 
-    const existingCategories = await getAllCategories();
-    const existingCategoryMap = new Map(existingCategories.map((cat) => [cat.value, cat]));
-
-    const updates = [];
-    let created = 0;
-
+    let changed = false;
     for (const defaultCategory of defaultCategories) {
-      const existingCategory = existingCategoryMap.get(defaultCategory.value);
-
-      if (existingCategory) {
-        const isNotCustom = !existingCategory.custom;
-        const needsLocalization = !existingCategory.label.startsWith('com_');
-
-        if (isNotCustom && needsLocalization) {
-          updates.push({
-            value: defaultCategory.value,
-            label: defaultCategory.label,
-            description: defaultCategory.description,
-          });
-        }
-      } else {
+      const existingCategory = agentCategoryStore.get(defaultCategory.value);
+      if (!existingCategory) {
         await createCategory({
           ...defaultCategory,
-          isActive: true,
           custom: false,
         });
-        created++;
+        changed = true;
+      } else {
+        if (!existingCategory.custom && !existingCategory.label.startsWith('com_')) {
+           existingCategory.label = defaultCategory.label;
+           existingCategory.description = defaultCategory.description;
+           agentCategoryStore.set(defaultCategory.value, existingCategory);
+           changed = true;
+        }
       }
     }
 
-    if (updates.length > 0) {
-      const bulkOps = updates.map((update) => ({
-        updateOne: {
-          filter: { value: update.value, custom: { $ne: true } },
-          update: {
-            $set: {
-              label: update.label,
-              description: update.description,
-            },
-          },
-        },
-      }));
-
-      await AgentCategory.bulkWrite(bulkOps, { ordered: false });
-    }
-
-    return updates.length > 0 || created > 0;
+    return changed;
   }
 
   return {

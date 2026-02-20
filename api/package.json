@@ -62,7 +62,6 @@
     "dotenv": "^16.0.3",
     "eventsource": "^3.0.2",
     "express": "^5.2.1",
-    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.2.1",
     "express-session": "^1.18.2",
     "express-static-gzip": "^2.2.0",
@@ -85,7 +84,6 @@
     "memorystore": "^1.6.7",
     "mime": "^3.0.0",
     "module-alias": "^2.2.3",
-    "mongoose": "^8.12.1",
     "multer": "^2.0.2",
     "nanoid": "^3.3.7",
     "node-fetch": "^2.7.0",
@@ -114,7 +112,6 @@
   },
   "devDependencies": {
     "jest": "^30.2.0",
-    "mongodb-memory-server": "^10.1.4",
     "nodemon": "^3.0.3",
     "supertest": "^7.1.0"
   }

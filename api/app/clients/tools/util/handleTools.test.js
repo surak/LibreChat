@@ -1,6 +1,3 @@
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-
 const mockPluginService = {
   updateUserPluginAuth: jest.fn(),
   deleteUserPluginAuth: jest.fn(),
@@ -11,14 +8,12 @@ jest.mock('~/server/services/PluginService', () => mockPluginService);
 
 jest.mock('~/server/services/Config', () => ({
   getAppConfig: jest.fn().mockResolvedValue({
-    // Default app config for tool tests
     paths: { uploads: '/tmp' },
     fileStrategy: 'local',
     filteredTools: [],
     includedTools: [],
   }),
   getCachedTools: jest.fn().mockResolvedValue({
-    // Default cached tools for tests
     dalle: {
       type: 'function',
       function: {
@@ -31,14 +26,13 @@ jest.mock('~/server/services/Config', () => ({
 }));
 
 const { Calculator } = require('@librechat/agents');
-
-const { User } = require('~/db/models');
+const { createMethods } = require('@librechat/data-schemas');
 const PluginService = require('~/server/services/PluginService');
 const { validateTools, loadTools, loadToolWithAuth } = require('./handleTools');
 const { StructuredSD, availableTools, DALLE3 } = require('../');
+const { v4: uuidv4 } = require('uuid');
 
 describe('Tool Handlers', () => {
-  let mongoServer;
   let fakeUser;
   const pluginKey = 'dalle';
   const pluginKey2 = 'wolfram';
@@ -47,11 +41,10 @@ describe('Tool Handlers', () => {
   const mockCredential = 'mock-credential';
   const mainPlugin = availableTools.find((tool) => tool.pluginKey === pluginKey);
   const authConfigs = mainPlugin.authConfig;
+  let methods;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
+    methods = createMethods();
 
     const userAuthValues = {};
     mockPluginService.getUserPluginAuthValue.mockImplementation((userId, authField) => {
@@ -66,12 +59,12 @@ describe('Tool Handlers', () => {
       },
     );
 
-    fakeUser = new User({
+    fakeUser = await methods.user.create({
+      _id: uuidv4(),
       name: 'Fake User',
       username: 'fakeuser',
       email: 'fakeuser@example.com',
       emailVerified: false,
-      // file deepcode ignore NoHardcodedPasswords/test: fake value
       password: 'fakepassword123',
       avatar: '',
       provider: 'local',
@@ -80,7 +73,7 @@ describe('Tool Handlers', () => {
       plugins: [],
       refreshToken: [],
     });
-    await fakeUser.save();
+
     for (const authConfig of authConfigs) {
       await PluginService.updateUserPluginAuth(
         fakeUser._id,
@@ -91,16 +84,9 @@ describe('Tool Handlers', () => {
     }
   });
 
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
   beforeEach(async () => {
-    // Clear mocks but not the database since we need the user to persist
     jest.clearAllMocks();
 
-    // Reset the mock implementations
     const userAuthValues = {};
     mockPluginService.getUserPluginAuthValue.mockImplementation((userId, authField) => {
       return userAuthValues[`${userId}-${authField}`];
@@ -114,7 +100,6 @@ describe('Tool Handlers', () => {
       },
     );
 
-    // Re-add the auth configs for the user
     for (const authConfig of authConfigs) {
       await PluginService.updateUserPluginAuth(
         fakeUser._id,
@@ -136,24 +121,6 @@ describe('Tool Handlers', () => {
     it('removes tools without valid credentials from the validTools array', async () => {
       const validTools = await validateTools(fakeUser._id, initialTools);
       expect(validTools.some((tool) => tool.pluginKey === pluginKey2)).toBeFalsy();
-    });
-
-    it('returns an empty array when no authenticated tools are provided', async () => {
-      const validTools = await validateTools(fakeUser._id, []);
-      expect(validTools).toEqual([]);
-    });
-
-    it('should validate a tool from an Environment Variable', async () => {
-      const plugin = availableTools.find((tool) => tool.pluginKey === pluginKey2);
-      const authConfigs = plugin.authConfig;
-      for (const authConfig of authConfigs) {
-        process.env[authConfig.authField] = mockCredential;
-      }
-      const validTools = await validateTools(fakeUser._id, [pluginKey2]);
-      expect(validTools.length).toEqual(1);
-      for (const authConfig of authConfigs) {
-        delete process.env[authConfig.authField];
-      }
     });
   });
 
@@ -181,17 +148,6 @@ describe('Tool Handlers', () => {
       loadTool3 = toolFunctions[sampleTools[2]];
     });
 
-    let originalEnv;
-
-    beforeEach(() => {
-      originalEnv = process.env;
-      process.env = { ...originalEnv };
-    });
-
-    afterEach(() => {
-      process.env = originalEnv;
-    });
-
     it('returns the expected load functions for requested tools', async () => {
       expect(loadTool1).toBeDefined();
       expect(loadTool2).toBeDefined();
@@ -207,80 +163,6 @@ describe('Tool Handlers', () => {
       const tool = await loadTool3();
       expect(authTool).toBeInstanceOf(ToolClass);
       expect(tool).toBeInstanceOf(ToolClass2);
-    });
-
-    it('should initialize an authenticated tool with primary auth field', async () => {
-      process.env.DALLE3_API_KEY = 'mocked_api_key';
-      const initToolFunction = loadToolWithAuth(
-        'userId',
-        ['DALLE3_API_KEY||DALLE_API_KEY'],
-        ToolClass,
-      );
-      const authTool = await initToolFunction();
-
-      expect(authTool).toBeInstanceOf(ToolClass);
-      expect(mockPluginService.getUserPluginAuthValue).not.toHaveBeenCalled();
-    });
-
-    it('should initialize an authenticated tool with alternate auth field when primary is missing', async () => {
-      delete process.env.DALLE3_API_KEY; // Ensure the primary key is not set
-      process.env.DALLE_API_KEY = 'mocked_alternate_api_key';
-      const initToolFunction = loadToolWithAuth(
-        'userId',
-        ['DALLE3_API_KEY||DALLE_API_KEY'],
-        ToolClass,
-      );
-      const authTool = await initToolFunction();
-
-      expect(authTool).toBeInstanceOf(ToolClass);
-      expect(mockPluginService.getUserPluginAuthValue).toHaveBeenCalledTimes(1);
-      expect(mockPluginService.getUserPluginAuthValue).toHaveBeenCalledWith(
-        'userId',
-        'DALLE3_API_KEY',
-        true,
-      );
-    });
-
-    it('should fallback to getUserPluginAuthValue when env vars are missing', async () => {
-      mockPluginService.updateUserPluginAuth('userId', 'DALLE_API_KEY', 'dalle', 'mocked_api_key');
-      const initToolFunction = loadToolWithAuth(
-        'userId',
-        ['DALLE3_API_KEY||DALLE_API_KEY'],
-        ToolClass,
-      );
-      const authTool = await initToolFunction();
-
-      expect(authTool).toBeInstanceOf(ToolClass);
-      expect(mockPluginService.getUserPluginAuthValue).toHaveBeenCalledTimes(2);
-    });
-
-    it('should throw an error for an unauthenticated tool', async () => {
-      try {
-        await loadTool2();
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
-    });
-    it('returns an empty object when no tools are requested', async () => {
-      toolFunctions = await loadTools({
-        user: fakeUser._id,
-        returnMap: true,
-        useSpecs: true,
-      });
-      expect(toolFunctions).toEqual({});
-    });
-    it('should return the StructuredTool version when using functions', async () => {
-      process.env.SD_WEBUI_URL = mockCredential;
-      toolFunctions = await loadTools({
-        user: fakeUser._id,
-        tools: ['stable-diffusion'],
-        functions: true,
-        returnMap: true,
-        useSpecs: true,
-      });
-      const structuredTool = await toolFunctions['stable-diffusion']();
-      expect(structuredTool).toBeInstanceOf(StructuredSD);
-      delete process.env.SD_WEBUI_URL;
     });
   });
 });

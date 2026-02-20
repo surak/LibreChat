@@ -1,12 +1,11 @@
-import type { Types } from 'mongoose';
 import type { IMessage } from './message';
 
 export interface ISharedLink {
-  _id?: Types.ObjectId;
+  _id: string;
   conversationId: string;
   title?: string;
   user?: string;
-  messages?: Types.ObjectId[];
+  messages?: string[];
   shareId?: string;
   targetMessageId?: string;
   isPublic: boolean;

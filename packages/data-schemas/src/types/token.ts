@@ -1,7 +1,6 @@
-import { Document, Types } from 'mongoose';
-
-export interface IToken extends Document {
-  userId: Types.ObjectId;
+export interface IToken {
+  _id: string;
+  userId: string;
   email?: string;
   type?: string;
   identifier?: string;
@@ -12,7 +11,7 @@ export interface IToken extends Document {
 }
 
 export interface TokenCreateData {
-  userId: Types.ObjectId | string;
+  userId: string;
   email?: string;
   type?: string;
   identifier?: string;
@@ -22,7 +21,7 @@ export interface TokenCreateData {
 }
 
 export interface TokenQuery {
-  userId?: Types.ObjectId | string;
+  userId?: string;
   token?: string;
   email?: string;
   identifier?: string;

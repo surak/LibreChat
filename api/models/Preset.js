@@ -1,5 +1,4 @@
 const { logger } = require('@librechat/data-schemas');
-const { Preset } = require('~/db/models');
 
 // In-memory store for presets
 const presetStore = new Map();

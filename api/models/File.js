@@ -1,6 +1,5 @@
 const { logger } = require('@librechat/data-schemas');
 const { EToolResources, FileContext } = require('librechat-data-provider');
-const { File } = require('~/db/models');
 
 // In-memory store for files
 const fileStore = new Map();
@@ -28,7 +27,7 @@ setInterval(() => {
  * Finds a file by its file_id with additional query options.
  * @param {string} file_id - The unique identifier of the file.
  * @param {object} options - Query options for filtering, projection, etc.
- * @returns {Promise<MongoFile>} A promise that resolves to the file document or null.
+ * @returns {Promise<Object>} A promise that resolves to the file document or null.
  */
 const findFileById = async (file_id) => {
   return fileStore.get(file_id);
@@ -38,7 +37,7 @@ const findFileById = async (file_id) => {
  * Retrieves files matching a given filter, sorted by the most recently updated.
  * @param {Object} filter - The filter criteria to apply.
  * @param {Object} [_sortOptions] - Optional sort parameters.
- * @returns {Promise<Array<MongoFile>>} A promise that resolves to an array of file documents.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of file documents.
  */
 const getFiles = async (filter) => {
   const files = Array.from(fileStore.values()).filter((file) => {
@@ -274,9 +273,9 @@ const deleteFiles = async (file_ids, user) => {
 };
 
 /**
- * Batch updates files with new signed URLs in MongoDB
+ * Batch updates files with new signed URLs.
  *
- * @param {MongoFile[]} updates - Array of updates in the format { file_id, filepath }
+ * @param {Object[]} updates - Array of updates in the format { file_id, filepath }
  * @returns {Promise<void>}
  */
 async function batchUpdateFiles(updates) {

@@ -5,7 +5,6 @@ import { getEndpointField } from 'librechat-data-provider';
 import {
   Dialog,
   Label,
-  PinIcon,
   EditIcon,
   TrashIcon,
   DialogTrigger,
@@ -160,42 +159,6 @@ const PresetItems: FC<{
                       data-testid={`preset-item-${preset}`}
                     >
                       <div className="flex h-full items-center justify-end gap-1">
-                        <TooltipAnchor
-                          description={
-                            defaultPreset?.presetId === presetId
-                              ? localize('com_ui_unpin')
-                              : localize('com_ui_pin')
-                          }
-                          aria-label={
-                            defaultPreset?.presetId === presetId
-                              ? localize('com_ui_unpin')
-                              : localize('com_ui_pin')
-                          }
-                          render={
-                            <button
-                              className={cn(
-                                'm-0 h-full rounded-md bg-transparent p-2 text-gray-400 hover:text-gray-700 focus:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 dark:focus:text-gray-200',
-                                defaultPreset?.presetId === presetId
-                                  ? ''
-                                  : 'sm:invisible sm:group-focus-within:visible sm:group-hover:visible',
-                              )}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onSetDefaultPreset(preset, defaultPreset?.presetId === presetId);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  onSetDefaultPreset(preset, defaultPreset?.presetId === presetId);
-                                }
-                              }}
-                            >
-                              <PinIcon unpin={defaultPreset?.presetId === presetId} />
-                            </button>
-                          }
-                        />
                         <TooltipAnchor
                           description={localize('com_ui_edit')}
                           aria-label={localize('com_ui_edit')}

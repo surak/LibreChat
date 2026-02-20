@@ -1,5 +1,3 @@
-import type { Document, Types } from 'mongoose';
-
 export type AgentCategory = {
   /** Unique identifier for the category (e.g., 'general', 'hr', 'finance') */
   value: string;
@@ -15,7 +13,6 @@ export type AgentCategory = {
   custom?: boolean;
 };
 
-export type IAgentCategory = AgentCategory &
-  Document & {
-    _id: Types.ObjectId;
-  };
+export type IAgentCategory = AgentCategory & {
+  _id: string;
+};

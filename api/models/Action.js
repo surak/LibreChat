@@ -1,4 +1,4 @@
-const { Action } = require('~/db/models');
+const { action: Action } = require('./index');
 
 /**
  * Update an action with new data without overwriting existing properties,
@@ -11,8 +11,7 @@ const { Action } = require('~/db/models');
  * @returns {Promise<Action>} The updated or newly created action document as a plain object.
  */
 const updateAction = async (searchParams, updateData) => {
-  const options = { new: true, upsert: true };
-  return await Action.findOneAndUpdate(searchParams, updateData, options).lean();
+  return await Action.findOneAndUpdate(searchParams, updateData, { upsert: true });
 };
 
 /**
@@ -23,7 +22,7 @@ const updateAction = async (searchParams, updateData) => {
  * @returns {Promise<Array<Action>>} A promise that resolves to an array of action documents as plain objects.
  */
 const getActions = async (searchParams, includeSensitive = false) => {
-  const actions = await Action.find(searchParams).lean();
+  const actions = await Action.find(searchParams);
 
   if (!includeSensitive) {
     for (let i = 0; i < actions.length; i++) {
@@ -53,7 +52,7 @@ const getActions = async (searchParams, includeSensitive = false) => {
  * @returns {Promise<Action>} A promise that resolves to the deleted action document as a plain object, or null if no document was found.
  */
 const deleteAction = async (searchParams) => {
-  return await Action.findOneAndDelete(searchParams).lean();
+  return await Action.findOneAndDelete(searchParams);
 };
 
 /**

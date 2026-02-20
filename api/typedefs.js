@@ -856,11 +856,6 @@
  * @memberof typedefs
  */
 
-/**
- * @exports MongooseSchema
- * @typedef {import('mongoose').Schema} MongooseSchema
- * @memberof typedefs
- */
 
 /**
  * @exports MongoFile
@@ -900,7 +895,7 @@
 
 /**
  * @exports ObjectId
- * @typedef {import('mongoose').Types.ObjectId} ObjectId
+ * @typedef {string} ObjectId
  * @memberof typedefs
  */
 
@@ -1755,7 +1750,7 @@
 
 /**
  * @typedef {object} txData - Transaction data.
- * @property {mongoose.Schema.Types.ObjectId} user - The user ID.
+ * @property {string} user - The user ID.
  * @property {String} conversationId - The ID of the conversation.
  * @property {String} model - The model name.
  * @property {String} context - The context in which the transaction is made.

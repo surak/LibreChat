@@ -9,7 +9,6 @@ const passport = require('passport');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const { logger } = require('@librechat/data-schemas');
-const mongoSanitize = require('express-mongo-sanitize');
 const {
   isEnabled,
   ErrorController,
@@ -19,7 +18,6 @@ const {
   GenerationJobManager,
   createStreamServices,
 } = require('@librechat/api');
-const { connectDb, indexSync } = require('~/db');
 const initializeOAuthReconnectManager = require('./services/initializeOAuthReconnectManager');
 const createValidateImageRequest = require('./middleware/validateImageRequest');
 const { jwtLogin, ldapLogin, passportLogin } = require('~/strategies');
@@ -46,12 +44,8 @@ const startServer = async () => {
   if (typeof Bun !== 'undefined') {
     axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
   }
-  await connectDb();
 
-  logger.info('Connected to MongoDB');
-  indexSync().catch((err) => {
-    logger.error('[indexSync] Background sync failed:', err);
-  });
+  logger.info('Running in stateless mode');
 
   app.disable('x-powered-by');
   app.set('trust proxy', trusted_proxy);
@@ -86,20 +80,6 @@ const startServer = async () => {
   app.use(express.urlencoded({ extended: true, limit: '3mb' }));
   app.use(handleJsonParseError);
 
-  /**
-   * Express 5 Compatibility: Make req.query writable for mongoSanitize
-   * In Express 5, req.query is read-only by default, but express-mongo-sanitize needs to modify it
-   */
-  app.use((req, _res, next) => {
-    Object.defineProperty(req, 'query', {
-      ...Object.getOwnPropertyDescriptor(req, 'query'),
-      value: req.query,
-      writable: true,
-    });
-    next();
-  });
-
-  app.use(mongoSanitize());
   app.use(cors());
   app.use(cookieParser());
 
