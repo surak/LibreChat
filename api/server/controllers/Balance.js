@@ -1,4 +1,4 @@
-const { Balance } = require('~/db/models');
+const { Balance } = require('~/models');
 
 async function balanceController(req, res) {
   const balanceData = await Balance.findOne(

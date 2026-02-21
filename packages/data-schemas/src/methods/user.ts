@@ -88,13 +88,14 @@ export function createUserMethods() {
     data: CreateUserRequest,
     balanceConfig?: BalanceConfig,
     disableTTL: boolean = true,
-    returnUser: boolean = false,
-  ): Promise<string | Partial<IUser>> {
+    returnUser: boolean = true,
+  ): Promise<IUser | string> {
     const userId = nanoid();
     const userData: IUser = {
       ...data,
       _id: userId,
       id: userId,
+      email: data.email.trim().toLowerCase(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       expiresAt: disableTTL ? undefined : new Date(Date.now() + 604800 * 1000).toISOString(),
@@ -135,7 +136,17 @@ export function createUserMethods() {
     userId: string,
     _fieldsToSelect?: string | string[] | null,
   ): Promise<IUser | null> {
+    if (typeof userId === 'object' && userId !== null) {
+      userId = (userId as any).toString();
+    }
     return userStore.get(userId) || null;
+  }
+
+  /**
+   * List all users.
+   */
+  async function listUsers(): Promise<IUser[]> {
+    return Array.from(userStore.values());
   }
 
   /**
@@ -217,6 +228,7 @@ export function createUserMethods() {
 
   return {
     findUser,
+    listUsers,
     countUsers,
     createUser,
     updateUser,

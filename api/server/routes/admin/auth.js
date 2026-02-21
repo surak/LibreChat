@@ -15,7 +15,7 @@ const { getAppConfig } = require('~/server/services/Config');
 const getLogStores = require('~/cache/getLogStores');
 const { getOpenIdConfig } = require('~/strategies');
 const middleware = require('~/server/middleware');
-const { Balance } = require('~/db/models');
+const { Balance } = require('~/models');
 
 const setBalanceConfig = createSetBalanceConfig({
   getAppConfig,

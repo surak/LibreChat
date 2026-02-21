@@ -1,0 +1,1236 @@
+./config/reset-terms.js:const mongoose = require('mongoose');
+./config/reset-terms.js:const { User } = require('@librechat/data-schemas').createModels(mongoose);
+./config/migrate-prompt-permissions.js:  const mongoose = require('mongoose');
+./config/migrate-prompt-permissions.js:  /** @type {import('mongoose').mongo.Db | undefined} */
+./config/migrate-prompt-permissions.js:  const db = mongoose.connection.db;
+./CHANGELOG.md:- 🔧 fix: Axios Proxy Usage And Bump `mongoose` by **@danny-avila** in [#6298](https://github.com/danny-avila/LibreChat/pull/6298)
+./packages/data-schemas/README.md:import { Schema } from 'mongoose';
+./packages/data-schemas/README.md:import type { Document, Types } from 'mongoose';
+./packages/data-schemas/README.md:export function createUserModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/README.md:  return mongoose.models.User || mongoose.model<t.IUser>('User', userSchema);
+./packages/data-schemas/README.md:import type { Model } from 'mongoose';
+./packages/data-schemas/README.md:export function createUserMethods(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/README.md:    const User = mongoose.models.User as Model<IUser>;
+./packages/data-schemas/README.md:    const User = mongoose.models.User as Model<IUser>;
+./packages/data-schemas/README.md:import type { Document, Types } from 'mongoose';
+./packages/data-schemas/README.md:import { Schema } from 'mongoose';
+./packages/data-schemas/README.md:export function createEntityNameModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/README.md:    mongoose.models.EntityName ||
+./packages/data-schemas/README.md:    mongoose.model<t.IEntityName>('EntityName', entityNameSchema)
+./packages/data-schemas/README.md:EntityName: createEntityNameModel(mongoose),
+./packages/data-schemas/README.md:import type { Model, Types } from 'mongoose';
+./packages/data-schemas/README.md:export function createEntityNameMethods(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/README.md:    const EntityName = mongoose.models.EntityName as Model<IEntityName>;
+./packages/data-schemas/README.md:...createEntityNameMethods(mongoose),
+./packages/data-schemas/README.md:- [Mongoose Documentation](https://mongoosejs.com/docs/)
+./packages/data-schemas/rollup.config.js:  external: ['mongoose'],
+./packages/data-schemas/src/methods/user.test.ts:import mongoose from 'mongoose';
+./packages/data-schemas/src/methods/user.test.ts:    userMethods = createUserMethods(mongoose);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:import mongoose from 'mongoose';
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:let Group: mongoose.Model<t.IGroup>;
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:let User: mongoose.Model<t.IUser>;
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  await mongoose.connect(mongoUri);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  Group = mongoose.models.Group || mongoose.model<t.IGroup>('Group', groupSchema);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  User = mongoose.models.User || mongoose.model<t.IUser>('User', userSchema);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  methods = createUserGroupMethods(mongoose);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  await mongoose.disconnect();
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  await mongoose.connection.dropDatabase();
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const found = await methods.findGroupById(group._id as mongoose.Types.ObjectId);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const found = await methods.findGroupById(group._id as mongoose.Types.ObjectId);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const found = await methods.findGroupById(group._id as mongoose.Types.ObjectId, {
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const fakeId = new mongoose.Types.ObjectId();
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const found = await methods.findGroupById(fakeId as mongoose.Types.ObjectId);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let user1: mongoose.HydratedDocument<t.IUser>;
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:          memberIds: [(user1._id as mongoose.Types.ObjectId).toString(), 'other-user'],
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:          memberIds: [(user1._id as mongoose.Types.ObjectId).toString()],
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.findGroupsByMemberId(user1._id as mongoose.Types.ObjectId);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:          memberIds: [(user1._id as mongoose.Types.ObjectId).toString()],
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.findGroupsByMemberId(user1._id as mongoose.Types.ObjectId);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.findGroupsByMemberId(user1._id as mongoose.Types.ObjectId);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let user: mongoose.HydratedDocument<t.IUser>;
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let userWithExternal: mongoose.HydratedDocument<t.IUser>;
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let group: mongoose.HydratedDocument<t.IGroup>;
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      expect(result.group?.memberIds).toContain((user._id as mongoose.Types.ObjectId).toString());
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        userWithExternal._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        (userWithExternal._id as mongoose.Types.ObjectId).toString(),
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      expect(result.group?.memberIds).toContain((user._id as mongoose.Types.ObjectId).toString());
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        (user._id as mongoose.Types.ObjectId).toString(),
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let user: mongoose.HydratedDocument<t.IUser>;
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:          memberIds: [(user._id as mongoose.Types.ObjectId).toString()],
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:          memberIds: [(user._id as mongoose.Types.ObjectId).toString(), 'other-user'],
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.getUserGroups(user._id as mongoose.Types.ObjectId);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.getUserGroups(user._id as mongoose.Types.ObjectId);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.getUserGroups(externalUser._id as mongoose.Types.ObjectId);
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let user: mongoose.HydratedDocument<t.IUser>;
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const result = await methods.syncUserEntraGroups(user._id as mongoose.Types.ObjectId, [
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      await methods.syncUserEntraGroups(user._id as mongoose.Types.ObjectId, [
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const fakeId = new mongoose.Types.ObjectId();
+./packages/data-schemas/src/utils/transactions.ts:  mongoose: typeof import('mongoose'),
+./packages/data-schemas/src/utils/transactions.ts:    const session = await mongoose.startSession();
+./packages/data-schemas/src/utils/transactions.ts:      await mongoose.connection.db?.collection('__transaction_test__').findOne({}, { session });
+./packages/data-schemas/src/utils/transactions.ts:  mongoose: typeof import('mongoose'),
+./packages/data-schemas/src/utils/transactions.ts:    transactionsSupported = await supportsTransactions(mongoose);
+./packages/data-schemas/src/models/group.ts: * Creates or returns the Group model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/group.ts:export function createGroupModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/group.ts:  return mongoose.models.Group || mongoose.model<t.IGroup>('Group', groupSchema);
+./packages/data-schemas/src/models/toolCall.ts: * Creates or returns the ToolCall model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/toolCall.ts:export function createToolCallModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/toolCall.ts:  return mongoose.models.ToolCall || mongoose.model<IToolCallData>('ToolCall', toolCallSchema);
+./packages/data-schemas/src/models/memory.ts:export function createMemoryModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/memory.ts:  return mongoose.models.MemoryEntry || mongoose.model<IMemoryEntry>('MemoryEntry', memorySchema);
+./packages/data-schemas/src/models/prompt.ts: * Creates or returns the Prompt model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/prompt.ts:export function createPromptModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/prompt.ts:  return mongoose.models.Prompt || mongoose.model<IPrompt>('Prompt', promptSchema);
+./packages/data-schemas/src/models/accessRole.ts: * Creates or returns the AccessRole model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/accessRole.ts:export function createAccessRoleModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/accessRole.ts:    mongoose.models.AccessRole || mongoose.model<t.IAccessRole>('AccessRole', accessRoleSchema)
+./packages/data-schemas/src/models/convo.ts: * Creates or returns the Conversation model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/convo.ts:export function createConversationModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/convo.ts:      mongoose,
+./packages/data-schemas/src/models/convo.ts:    mongoose.models.Conversation || mongoose.model<t.IConversation>('Conversation', convoSchema)
+./packages/data-schemas/src/models/user.ts: * Creates or returns the User model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/user.ts:export function createUserModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/user.ts:  return mongoose.models.User || mongoose.model<t.IUser>('User', userSchema);
+./packages/data-schemas/src/models/mcpServer.ts: * Creates or returns the MCPServer model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/mcpServer.ts:export function createMCPServerModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/mcpServer.ts:    mongoose.models.MCPServer || mongoose.model<MCPServerDocument>('MCPServer', mcpServerSchema)
+./packages/data-schemas/src/models/role.ts: * Creates or returns the Role model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/role.ts:export function createRoleModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/role.ts:  return mongoose.models.Role || mongoose.model<IRole>('Role', roleSchema);
+./packages/data-schemas/src/models/balance.ts: * Creates or returns the Balance model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/balance.ts:export function createBalanceModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/balance.ts:  return mongoose.models.Balance || mongoose.model<t.IBalance>('Balance', balanceSchema);
+./packages/data-schemas/src/models/message.ts: * Creates or returns the Message model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/message.ts:export function createMessageModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/message.ts:      mongoose,
+./packages/data-schemas/src/models/message.ts:  return mongoose.models.Message || mongoose.model<t.IMessage>('Message', messageSchema);
+./packages/data-schemas/src/models/preset.ts: * Creates or returns the Preset model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/preset.ts:export function createPresetModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/preset.ts:  return mongoose.models.Preset || mongoose.model<IPreset>('Preset', presetSchema);
+./packages/data-schemas/src/models/transaction.ts: * Creates or returns the Transaction model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/transaction.ts:export function createTransactionModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/transaction.ts:    mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', transactionSchema)
+./packages/data-schemas/src/models/project.ts: * Creates or returns the Project model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/project.ts:export function createProjectModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/project.ts:  return mongoose.models.Project || mongoose.model<IMongoProject>('Project', projectSchema);
+./packages/data-schemas/src/models/key.ts: * Creates or returns the Key model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/key.ts:export function createKeyModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/key.ts:  return mongoose.models.Key || mongoose.model<IKey>('Key', keySchema);
+./packages/data-schemas/src/models/agent.ts: * Creates or returns the Agent model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/agent.ts:export function createAgentModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/agent.ts:  return mongoose.models.Agent || mongoose.model<IAgent>('Agent', agentSchema);
+./packages/data-schemas/src/models/sharedLink.ts: * Creates or returns the SharedLink model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/sharedLink.ts:export function createSharedLinkModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/sharedLink.ts:  return mongoose.models.SharedLink || mongoose.model<ISharedLink>('SharedLink', shareSchema);
+./packages/data-schemas/src/models/agentCategory.ts: * Creates or returns the AgentCategory model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/agentCategory.ts:export function createAgentCategoryModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/agentCategory.ts:    mongoose.models.AgentCategory ||
+./packages/data-schemas/src/models/agentCategory.ts:    mongoose.model<t.IAgentCategory>('AgentCategory', agentCategorySchema)
+./packages/data-schemas/src/models/token.ts: * Creates or returns the Token model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/token.ts:export function createTokenModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/token.ts:  return mongoose.models.Token || mongoose.model<t.IToken>('Token', tokenSchema);
+./packages/data-schemas/src/models/assistant.ts: * Creates or returns the Assistant model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/assistant.ts:export function createAssistantModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/assistant.ts:  return mongoose.models.Assistant || mongoose.model<IAssistant>('Assistant', assistantSchema);
+./packages/data-schemas/src/models/index.ts:export function createModels(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/index.ts:    User: createUserModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Token: createTokenModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Session: createSessionModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Balance: createBalanceModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Conversation: createConversationModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Message: createMessageModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Agent: createAgentModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    AgentApiKey: createAgentApiKeyModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    AgentCategory: createAgentCategoryModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    MCPServer: createMCPServerModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Role: createRoleModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Action: createActionModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Assistant: createAssistantModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    File: createFileModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Banner: createBannerModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Project: createProjectModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Key: createKeyModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    PluginAuth: createPluginAuthModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Transaction: createTransactionModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Preset: createPresetModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Prompt: createPromptModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    PromptGroup: createPromptGroupModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    ConversationTag: createConversationTagModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    SharedLink: createSharedLinkModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    ToolCall: createToolCallModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    MemoryEntry: createMemoryModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    AccessRole: createAccessRoleModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    AclEntry: createAclEntryModel(mongoose),
+./packages/data-schemas/src/models/index.ts:    Group: createGroupModel(mongoose),
+./packages/data-schemas/src/models/aclEntry.ts: * Creates or returns the AclEntry model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/aclEntry.ts:export function createAclEntryModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/aclEntry.ts:  return mongoose.models.AclEntry || mongoose.model<t.IAclEntry>('AclEntry', aclEntrySchema);
+./packages/data-schemas/src/models/agentApiKey.ts:export function createAgentApiKeyModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/agentApiKey.ts:    mongoose.models.AgentApiKey || mongoose.model<IAgentApiKey>('AgentApiKey', agentApiKeySchema)
+./packages/data-schemas/src/models/pluginAuth.ts: * Creates or returns the PluginAuth model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/pluginAuth.ts:export function createPluginAuthModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/pluginAuth.ts:  return mongoose.models.PluginAuth || mongoose.model<IPluginAuth>('PluginAuth', pluginAuthSchema);
+./packages/data-schemas/src/models/conversationTag.ts: * Creates or returns the ConversationTag model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/conversationTag.ts:export function createConversationTagModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/conversationTag.ts:    mongoose.models.ConversationTag ||
+./packages/data-schemas/src/models/conversationTag.ts:    mongoose.model<IConversationTag>('ConversationTag', conversationTagSchema)
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:import mongoose from 'mongoose';
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await mongoose.connect(mongoUri);
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await mongoose.disconnect();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createConversationModel(mongoose).create({
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createConversationModel(mongoose).create({
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createConversationModel(mongoose).create({
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createMessageModel(mongoose).create({
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createMessageModel(mongoose).create({
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createMessageModel(mongoose).create({
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const existingConvoId = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedConvoId1 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedConvoId2 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        new mongoose.Types.ObjectId().toString(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        new mongoose.Types.ObjectId().toString(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        new mongoose.Types.ObjectId().toString(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        new mongoose.Types.ObjectId().toString(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        new mongoose.Types.ObjectId().toString(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const existingId1 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const existingId2 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const id1 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const id2 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const existingIds = Array.from({ length: 5 }, () => new mongoose.Types.ObjectId().toString());
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedIds = Array.from({ length: 3 }, () => new mongoose.Types.ObjectId().toString());
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const id1 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const id2 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedId1 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedId2 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedId3 = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedIds = Array.from({ length: 3 }, () => new mongoose.Types.ObjectId().toString());
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const existingId = new mongoose.Types.ObjectId().toString();
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./packages/data-schemas/src/models/plugins/mongoMeili.ts:} from 'mongoose';
+./packages/data-schemas/src/models/plugins/mongoMeili.ts:  mongoose: typeof import('mongoose');
+./packages/data-schemas/src/models/plugins/mongoMeili.ts:  const mongoose = options.mongoose;
+./packages/data-schemas/src/models/plugins/mongoMeili.ts:        const deletedConvos = await mongoose
+./packages/data-schemas/src/models/plugins/mongoMeili.ts:        const deletedMessages = await mongoose
+./packages/data-schemas/src/models/action.ts: * Creates or returns the Action model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/action.ts:export function createActionModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/action.ts:  return mongoose.models.Action || mongoose.model<IAction>('Action', actionSchema);
+./packages/data-schemas/src/models/file.ts: * Creates or returns the File model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/file.ts:export function createFileModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/file.ts:  return mongoose.models.File || mongoose.model<IMongoFile>('File', fileSchema);
+./packages/data-schemas/src/models/promptGroup.ts: * Creates or returns the PromptGroup model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/promptGroup.ts:export function createPromptGroupModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/promptGroup.ts:    mongoose.models.PromptGroup ||
+./packages/data-schemas/src/models/promptGroup.ts:    mongoose.model<IPromptGroupDocument>('PromptGroup', promptGroupSchema)
+./packages/data-schemas/src/models/session.ts: * Creates or returns the Session model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/session.ts:export function createSessionModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/session.ts:  return mongoose.models.Session || mongoose.model<t.ISession>('Session', sessionSchema);
+./packages/data-schemas/src/models/banner.ts: * Creates or returns the Banner model using the provided mongoose instance and schema
+./packages/data-schemas/src/models/banner.ts:export function createBannerModel(mongoose: typeof import('mongoose')) {
+./packages/data-schemas/src/models/banner.ts:  return mongoose.models.Banner || mongoose.model<IBanner>('Banner', bannerSchema);
+./packages/data-schemas/src/schema/group.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/toolCall.ts:import mongoose, { Schema, Document, Types } from 'mongoose';
+./packages/data-schemas/src/schema/toolCall.ts:      type: mongoose.Schema.Types.ObjectId,
+./packages/data-schemas/src/schema/toolCall.ts:      type: mongoose.Schema.Types.Mixed,
+./packages/data-schemas/src/schema/toolCall.ts:      type: mongoose.Schema.Types.Mixed,
+./packages/data-schemas/src/schema/memory.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/prompt.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/accessRole.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/convo.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/user.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/mcpServer.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/role.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/categories.ts:import { Schema, Document } from 'mongoose';
+./packages/data-schemas/src/schema/balance.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/message.ts:import mongoose, { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/message.ts:          type: mongoose.Schema.Types.Mixed,
+./packages/data-schemas/src/schema/message.ts:    files: { type: [{ type: mongoose.Schema.Types.Mixed }], default: undefined },
+./packages/data-schemas/src/schema/message.ts:      type: [{ type: mongoose.Schema.Types.Mixed }],
+./packages/data-schemas/src/schema/message.ts:    metadata: { type: mongoose.Schema.Types.Mixed },
+./packages/data-schemas/src/schema/message.ts:    attachments: { type: [{ type: mongoose.Schema.Types.Mixed }], default: undefined },
+./packages/data-schemas/src/schema/preset.ts:import { Schema, Document } from 'mongoose';
+./packages/data-schemas/src/schema/transaction.ts:import mongoose, { Schema, Document, Types } from 'mongoose';
+./packages/data-schemas/src/schema/transaction.ts:      type: mongoose.Schema.Types.ObjectId,
+./packages/data-schemas/src/schema/project.ts:import { Schema, Document, Types } from 'mongoose';
+./packages/data-schemas/src/schema/key.ts:import mongoose, { Schema, Document, Types } from 'mongoose';
+./packages/data-schemas/src/schema/key.ts:    type: mongoose.Schema.Types.ObjectId,
+./packages/data-schemas/src/schema/agent.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/agentCategory.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/token.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/assistant.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/aclEntry.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/agentApiKey.ts:import mongoose, { Schema, Document, Types } from 'mongoose';
+./packages/data-schemas/src/schema/agentApiKey.ts:      type: mongoose.Schema.Types.ObjectId,
+./packages/data-schemas/src/schema/pluginAuth.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/conversationTag.ts:import { Schema, Document } from 'mongoose';
+./packages/data-schemas/src/schema/defaults.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/share.ts:import mongoose, { Schema, Document, Types } from 'mongoose';
+./packages/data-schemas/src/schema/share.ts:    messages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Message' }],
+./packages/data-schemas/src/schema/action.ts:import mongoose, { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/action.ts:    type: mongoose.Schema.Types.ObjectId,
+./packages/data-schemas/src/schema/file.ts:import mongoose, { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/file.ts:      type: mongoose.Schema.Types.ObjectId,
+./packages/data-schemas/src/schema/promptGroup.ts:import { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/session.ts:import mongoose, { Schema } from 'mongoose';
+./packages/data-schemas/src/schema/session.ts:    type: mongoose.Schema.Types.ObjectId,
+./packages/data-schemas/src/schema/banner.ts:import { Schema, Document } from 'mongoose';
+./packages/api/dist/index.js:function createApiKeyServiceDependencies(mongoose) {
+./packages/api/dist/index.js:    const methods = dataSchemas.createMethods(mongoose);
+./packages/api/dist/index.js:    constructor(mongoose) {
+./packages/api/dist/index.js:        if (!mongoose) {
+./packages/api/dist/index.js:            throw new Error('ServerConfigsDB requires mongoose instance');
+./packages/api/dist/index.js:        this._mongoose = mongoose;
+./packages/api/dist/index.js:        this._dbMethods = dataSchemas.createMethods(mongoose);
+./packages/api/dist/index.js:        this._aclService = new AccessControlService(mongoose);
+./packages/api/dist/index.js:            const Agent = this._mongoose.model('Agent');
+./packages/api/dist/index.js:                const Agent = this._mongoose.model('Agent');
+./packages/api/dist/index.js:    constructor(mongoose, allowedDomains) {
+./packages/api/dist/index.js:        this.dbConfigsRepo = new ServerConfigsDB(mongoose);
+./packages/api/dist/index.js:    static createInstance(mongoose, allowedDomains) {
+./packages/api/dist/index.js:        if (!mongoose) {
+./packages/api/dist/index.js:            throw new Error('MCPServersRegistry creation failed: mongoose instance is required for database operations. ' +
+./packages/api/dist/index.js:                'Ensure mongoose is initialized before creating the registry.');
+./packages/api/dist/index.js:        MCPServersRegistry.instance = new MCPServersRegistry(mongoose, allowedDomains);
+./packages/api/dist/index.js:function checkPromptPermissionsMigration({ methods, mongoose, PromptGroupModel, }) {
+./packages/api/dist/index.js:            const db = mongoose.connection.db;
+./packages/api/dist/index.js:function checkAgentPermissionsMigration({ methods, mongoose, AgentModel, }) {
+./packages/api/dist/index.js:            const db = mongoose.connection.db;
+./packages/api/dist/types/apiKeys/permissions.d.ts:import type { Types, Model } from 'mongoose';
+./packages/api/dist/types/apiKeys/service.d.ts:import type { Types } from 'mongoose';
+./packages/api/dist/types/apiKeys/service.d.ts:export declare function createApiKeyServiceDependencies(mongoose: typeof import('mongoose')): ApiKeyServiceDependencies;
+./packages/api/dist/types/apiKeys/middleware.d.ts:import type { Types } from 'mongoose';
+./packages/api/dist/types/apiKeys/handlers.d.ts:import type { Types } from 'mongoose';
+./packages/api/dist/types/types/prompts.d.ts:import type { Types } from 'mongoose';
+./packages/api/dist/types/types/error.d.ts:import type { Error as MongooseError } from 'mongoose';
+./packages/api/dist/types/prompts/format.d.ts:import type { Types } from 'mongoose';
+./packages/api/dist/types/prompts/migration.d.ts:import type { Model, Mongoose } from 'mongoose';
+./packages/api/dist/types/prompts/migration.d.ts:    mongoose: Mongoose;
+./packages/api/dist/types/prompts/migration.d.ts:export declare function checkPromptPermissionsMigration({ methods, mongoose, PromptGroupModel, }: PromptMigrationCheckParams): Promise<PromptMigrationCheckResult>;
+./packages/api/dist/types/mcp/registry/db/ServerConfigsDB.d.ts:    private _mongoose;
+./packages/api/dist/types/mcp/registry/db/ServerConfigsDB.d.ts:    constructor(mongoose: typeof import('mongoose'));
+./packages/api/dist/types/mcp/registry/MCPServersRegistry.d.ts:    constructor(mongoose: typeof import('mongoose'), allowedDomains?: string[] | null);
+./packages/api/dist/types/mcp/registry/MCPServersRegistry.d.ts:    static createInstance(mongoose: typeof import('mongoose'), allowedDomains?: string[] | null): MCPServersRegistry;
+./packages/api/dist/types/db/utils.d.ts:import type { mongo } from 'mongoose';
+./packages/api/dist/types/agents/resources.d.ts:import type { FilterQuery, QueryOptions, ProjectionType } from 'mongoose';
+./packages/api/dist/types/agents/migration.d.ts:import type { Model, Mongoose } from 'mongoose';
+./packages/api/dist/types/agents/migration.d.ts:    mongoose: Mongoose;
+./packages/api/dist/types/agents/migration.d.ts:export declare function checkAgentPermissionsMigration({ methods, mongoose, AgentModel, }: MigrationCheckParams): Promise<MigrationCheckResult>;
+./packages/api/dist/types/middleware/balance.d.ts:import type { Model } from 'mongoose';
+./packages/api/src/apiKeys/permissions.ts:import type { Types, Model } from 'mongoose';
+./packages/api/src/apiKeys/middleware.ts:import type { Types } from 'mongoose';
+./packages/api/src/apiKeys/handlers.ts:import type { Types } from 'mongoose';
+./packages/api/src/apiKeys/service.ts:import type { Types } from 'mongoose';
+./packages/api/src/apiKeys/service.ts:  mongoose: typeof import('mongoose'),
+./packages/api/src/apiKeys/service.ts:  const methods = createMethods(mongoose);
+./packages/api/src/files/filter.spec.ts:import { Types } from 'mongoose';
+./packages/api/src/files/encode/document.spec.ts:import { Types } from 'mongoose';
+./packages/api/src/utils/env.spec.ts:import { Types } from 'mongoose';
+./packages/api/src/types/error.ts:import type { Error as MongooseError } from 'mongoose';
+./packages/api/src/types/prompts.ts:import type { Types } from 'mongoose';
+./packages/api/src/prompts/migration.ts:import type { Model, Mongoose } from 'mongoose';
+./packages/api/src/prompts/migration.ts:  mongoose: Mongoose;
+./packages/api/src/prompts/migration.ts:  mongoose,
+./packages/api/src/prompts/migration.ts:    const db = mongoose.connection.db;
+./packages/api/src/prompts/format.ts:import type { Types } from 'mongoose';
+./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.cache_integration.spec.ts:    const mongoose = await import('mongoose');
+./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.cache_integration.spec.ts:    // Reset singleton and create new instance with mongoose
+./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.cache_integration.spec.ts:    MCPServersRegistry.createInstance(mongoose.default);
+./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.test.ts:// Mock mongoose for registry initialization
+./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.test.ts:const mockMongoose = {} as typeof import('mongoose');
+./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.test.ts:// Mock ServerConfigsDB to avoid mongoose dependency
+./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.test.ts:// Mock ServerConfigsDB to avoid mongoose dependency
+./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.test.ts:// Mock mongoose for registry initialization
+./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.test.ts:const mockMongoose = {} as typeof import('mongoose');
+./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.cache_integration.spec.ts:    const mongoose = await import('mongoose');
+./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.cache_integration.spec.ts:    // Reset singleton and create new instance with mongoose
+./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.cache_integration.spec.ts:    MCPServersRegistry.createInstance(mongoose.default);
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:import mongoose from 'mongoose';
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:let ServerConfigsDB: new (mongoose: typeof import('mongoose')) => ServerConfigsDBType;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  await mongoose.connect(mongoUri);
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  createModels(mongoose);
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  dbMethods = createMethods(mongoose);
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  serverConfigsDB = new ServerConfigsDB(mongoose);
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  await mongoose.disconnect();
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  await mongoose.models.MCPServer.deleteMany({});
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  await mongoose.models.Agent.deleteMany({});
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  await mongoose.models.AclEntry.deleteMany({});
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  const userId = new mongoose.Types.ObjectId().toString();
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  const userId2 = new mongoose.Types.ObjectId().toString();
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:    it('should throw error when mongoose is not provided', () => {
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      expect(() => new ServerConfigsDB(null as unknown as typeof mongoose)).toThrow(
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        'ServerConfigsDB requires mongoose instance',
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:    it('should create instance when mongoose is provided', () => {
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const instance = new ServerConfigsDB(mongoose);
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const aclEntry = await mongoose.models.AclEntry.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        principalId: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      let aclEntries = await mongoose.models.AclEntry.find({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      aclEntries = await mongoose.models.AclEntry.find({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const role = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const agentRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const mcpRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const agentRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          resourceId: new mongoose.Types.ObjectId(created1.config.dbId!),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const agentRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const mcpRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const agentRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const agentRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create([
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:            principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:            grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:            principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:            grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const agentRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const agentRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      expect(mongoose.Types.ObjectId.isValid(created.config.dbId!)).toBe(true);
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const agentRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const Agent = mongoose.models.Agent;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        author: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const agentRole = await mongoose.models.AccessRole.findOne({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      await mongoose.models.AclEntry.create({
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        principalId: new mongoose.Types.ObjectId(userId2),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        grantedBy: new mongoose.Types.ObjectId(userId),
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./packages/api/src/mcp/registry/db/ServerConfigsDB.ts:import { Types } from 'mongoose';
+./packages/api/src/mcp/registry/db/ServerConfigsDB.ts:  private _mongoose: typeof import('mongoose');
+./packages/api/src/mcp/registry/db/ServerConfigsDB.ts:  constructor(mongoose: typeof import('mongoose')) {
+./packages/api/src/mcp/registry/db/ServerConfigsDB.ts:    if (!mongoose) {
+./packages/api/src/mcp/registry/db/ServerConfigsDB.ts:      throw new Error('ServerConfigsDB requires mongoose instance');
+./packages/api/src/mcp/registry/db/ServerConfigsDB.ts:    this._mongoose = mongoose;
+./packages/api/src/mcp/registry/db/ServerConfigsDB.ts:    this._dbMethods = createMethods(mongoose);
+./packages/api/src/mcp/registry/db/ServerConfigsDB.ts:    this._aclService = new AccessControlService(mongoose);
+./packages/api/src/mcp/registry/db/ServerConfigsDB.ts:    const Agent = this._mongoose.model('Agent');
+./packages/api/src/mcp/registry/db/ServerConfigsDB.ts:      const Agent = this._mongoose.model('Agent');
+./packages/api/src/mcp/registry/MCPServersRegistry.ts:  constructor(mongoose: typeof import('mongoose'), allowedDomains?: string[] | null) {
+./packages/api/src/mcp/registry/MCPServersRegistry.ts:    this.dbConfigsRepo = new ServerConfigsDB(mongoose);
+./packages/api/src/mcp/registry/MCPServersRegistry.ts:    mongoose: typeof import('mongoose'),
+./packages/api/src/mcp/registry/MCPServersRegistry.ts:    if (!mongoose) {
+./packages/api/src/mcp/registry/MCPServersRegistry.ts:        'MCPServersRegistry creation failed: mongoose instance is required for database operations. ' +
+./packages/api/src/mcp/registry/MCPServersRegistry.ts:          'Ensure mongoose is initialized before creating the registry.',
+./packages/api/src/mcp/registry/MCPServersRegistry.ts:    MCPServersRegistry.instance = new MCPServersRegistry(mongoose, allowedDomains);
+./packages/api/src/mcp/__tests__/tokens.test.ts:import { Types } from 'mongoose';
+./packages/api/src/db/utils.ts:import type { mongo } from 'mongoose';
+./packages/api/src/agents/migration.ts:import type { Model, Mongoose } from 'mongoose';
+./packages/api/src/agents/migration.ts:  mongoose: Mongoose;
+./packages/api/src/agents/migration.ts:  mongoose,
+./packages/api/src/agents/migration.ts:    const db = mongoose.connection.db;
+./packages/api/src/agents/resources.ts:import type { FilterQuery, QueryOptions, ProjectionType } from 'mongoose';
+./packages/api/src/agents/memory.spec.ts:import { Types } from 'mongoose';
+./packages/api/src/middleware/balance.ts:import type { Model } from 'mongoose';
+./bun.lock:        "mongoose": "^8.12.1",
+./bun.lock:        "mongoose": "^8.12.1",
+./bun.lock:        "mongoose": "^8.12.1",
+./bun.lock:    "mongoose": ["mongoose@8.12.1", "", { "dependencies": { "bson": "^6.10.3", "kareem": "2.6.3", "mongodb": "~6.14.0", "mpath": "0.9.0", "mquery": "5.0.0", "ms": "2.1.3", "sift": "17.1.3" } }, "sha512-UW22y8QFVYmrb36hm8cGncfn4ARc/XsYWQwRTaj0gxtQk1rDuhzDO1eBantS+hTTatfAIS96LlRCJrcNHvW5+Q=="],
+./api/server/routes/prompts.js: * @param {import('mongoose').ObjectId} req.params.promptId - The prompt ID
+./api/server/services/initializeMCPs.spec.js:        null, // No longer passing mongoose
+./grep_mongoose.txt:./config/reset-terms.js:const mongoose = require('mongoose');
+./grep_mongoose.txt:./config/reset-terms.js:const { User } = require('@librechat/data-schemas').createModels(mongoose);
+./grep_mongoose.txt:./config/migrate-prompt-permissions.js:  const mongoose = require('mongoose');
+./grep_mongoose.txt:./config/migrate-prompt-permissions.js:  /** @type {import('mongoose').mongo.Db | undefined} */
+./grep_mongoose.txt:./config/migrate-prompt-permissions.js:  const db = mongoose.connection.db;
+./grep_mongoose.txt:./CHANGELOG.md:- 🔧 fix: Axios Proxy Usage And Bump `mongoose` by **@danny-avila** in [#6298](https://github.com/danny-avila/LibreChat/pull/6298)
+./grep_mongoose.txt:./packages/data-schemas/README.md:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/README.md:import type { Document, Types } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/README.md:export function createUserModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/README.md:  return mongoose.models.User || mongoose.model<t.IUser>('User', userSchema);
+./grep_mongoose.txt:./packages/data-schemas/README.md:import type { Model } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/README.md:export function createUserMethods(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/README.md:    const User = mongoose.models.User as Model<IUser>;
+./grep_mongoose.txt:./packages/data-schemas/README.md:    const User = mongoose.models.User as Model<IUser>;
+./grep_mongoose.txt:./packages/data-schemas/README.md:import type { Document, Types } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/README.md:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/README.md:export function createEntityNameModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/README.md:    mongoose.models.EntityName ||
+./grep_mongoose.txt:./packages/data-schemas/README.md:    mongoose.model<t.IEntityName>('EntityName', entityNameSchema)
+./grep_mongoose.txt:./packages/data-schemas/README.md:EntityName: createEntityNameModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/README.md:import type { Model, Types } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/README.md:export function createEntityNameMethods(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/README.md:    const EntityName = mongoose.models.EntityName as Model<IEntityName>;
+./grep_mongoose.txt:./packages/data-schemas/README.md:...createEntityNameMethods(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/README.md:- [Mongoose Documentation](https://mongoosejs.com/docs/)
+./grep_mongoose.txt:./packages/data-schemas/rollup.config.js:  external: ['mongoose'],
+./grep_mongoose.txt:./packages/data-schemas/src/methods/user.test.ts:import mongoose from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/methods/user.test.ts:    userMethods = createUserMethods(mongoose);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:import mongoose from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:let Group: mongoose.Model<t.IGroup>;
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:let User: mongoose.Model<t.IUser>;
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  await mongoose.connect(mongoUri);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  Group = mongoose.models.Group || mongoose.model<t.IGroup>('Group', groupSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  User = mongoose.models.User || mongoose.model<t.IUser>('User', userSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  methods = createUserGroupMethods(mongoose);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  await mongoose.disconnect();
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:  await mongoose.connection.dropDatabase();
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const found = await methods.findGroupById(group._id as mongoose.Types.ObjectId);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const found = await methods.findGroupById(group._id as mongoose.Types.ObjectId);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const found = await methods.findGroupById(group._id as mongoose.Types.ObjectId, {
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const fakeId = new mongoose.Types.ObjectId();
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const found = await methods.findGroupById(fakeId as mongoose.Types.ObjectId);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let user1: mongoose.HydratedDocument<t.IUser>;
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:          memberIds: [(user1._id as mongoose.Types.ObjectId).toString(), 'other-user'],
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:          memberIds: [(user1._id as mongoose.Types.ObjectId).toString()],
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.findGroupsByMemberId(user1._id as mongoose.Types.ObjectId);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:          memberIds: [(user1._id as mongoose.Types.ObjectId).toString()],
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.findGroupsByMemberId(user1._id as mongoose.Types.ObjectId);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.findGroupsByMemberId(user1._id as mongoose.Types.ObjectId);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let user: mongoose.HydratedDocument<t.IUser>;
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let userWithExternal: mongoose.HydratedDocument<t.IUser>;
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let group: mongoose.HydratedDocument<t.IGroup>;
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      expect(result.group?.memberIds).toContain((user._id as mongoose.Types.ObjectId).toString());
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        userWithExternal._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        (userWithExternal._id as mongoose.Types.ObjectId).toString(),
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      expect(result.group?.memberIds).toContain((user._id as mongoose.Types.ObjectId).toString());
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        (user._id as mongoose.Types.ObjectId).toString(),
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        group._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let user: mongoose.HydratedDocument<t.IUser>;
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:          memberIds: [(user._id as mongoose.Types.ObjectId).toString()],
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:          memberIds: [(user._id as mongoose.Types.ObjectId).toString(), 'other-user'],
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.getUserGroups(user._id as mongoose.Types.ObjectId);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.getUserGroups(user._id as mongoose.Types.ObjectId);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const groups = await methods.getUserGroups(externalUser._id as mongoose.Types.ObjectId);
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:    let user: mongoose.HydratedDocument<t.IUser>;
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:        user._id as mongoose.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const result = await methods.syncUserEntraGroups(user._id as mongoose.Types.ObjectId, [
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      await methods.syncUserEntraGroups(user._id as mongoose.Types.ObjectId, [
+./grep_mongoose.txt:./packages/data-schemas/src/methods/userGroup.methods.spec.ts:      const fakeId = new mongoose.Types.ObjectId();
+./grep_mongoose.txt:./packages/data-schemas/src/utils/transactions.ts:  mongoose: typeof import('mongoose'),
+./grep_mongoose.txt:./packages/data-schemas/src/utils/transactions.ts:    const session = await mongoose.startSession();
+./grep_mongoose.txt:./packages/data-schemas/src/utils/transactions.ts:      await mongoose.connection.db?.collection('__transaction_test__').findOne({}, { session });
+./grep_mongoose.txt:./packages/data-schemas/src/utils/transactions.ts:  mongoose: typeof import('mongoose'),
+./grep_mongoose.txt:./packages/data-schemas/src/utils/transactions.ts:    transactionsSupported = await supportsTransactions(mongoose);
+./grep_mongoose.txt:./packages/data-schemas/src/models/group.ts: * Creates or returns the Group model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/group.ts:export function createGroupModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/group.ts:  return mongoose.models.Group || mongoose.model<t.IGroup>('Group', groupSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/toolCall.ts: * Creates or returns the ToolCall model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/toolCall.ts:export function createToolCallModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/toolCall.ts:  return mongoose.models.ToolCall || mongoose.model<IToolCallData>('ToolCall', toolCallSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/memory.ts:export function createMemoryModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/memory.ts:  return mongoose.models.MemoryEntry || mongoose.model<IMemoryEntry>('MemoryEntry', memorySchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/prompt.ts: * Creates or returns the Prompt model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/prompt.ts:export function createPromptModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/prompt.ts:  return mongoose.models.Prompt || mongoose.model<IPrompt>('Prompt', promptSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/accessRole.ts: * Creates or returns the AccessRole model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/accessRole.ts:export function createAccessRoleModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/accessRole.ts:    mongoose.models.AccessRole || mongoose.model<t.IAccessRole>('AccessRole', accessRoleSchema)
+./grep_mongoose.txt:./packages/data-schemas/src/models/convo.ts: * Creates or returns the Conversation model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/convo.ts:export function createConversationModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/convo.ts:      mongoose,
+./grep_mongoose.txt:./packages/data-schemas/src/models/convo.ts:    mongoose.models.Conversation || mongoose.model<t.IConversation>('Conversation', convoSchema)
+./grep_mongoose.txt:./packages/data-schemas/src/models/user.ts: * Creates or returns the User model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/user.ts:export function createUserModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/user.ts:  return mongoose.models.User || mongoose.model<t.IUser>('User', userSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/mcpServer.ts: * Creates or returns the MCPServer model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/mcpServer.ts:export function createMCPServerModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/mcpServer.ts:    mongoose.models.MCPServer || mongoose.model<MCPServerDocument>('MCPServer', mcpServerSchema)
+./grep_mongoose.txt:./packages/data-schemas/src/models/role.ts: * Creates or returns the Role model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/role.ts:export function createRoleModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/role.ts:  return mongoose.models.Role || mongoose.model<IRole>('Role', roleSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/balance.ts: * Creates or returns the Balance model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/balance.ts:export function createBalanceModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/balance.ts:  return mongoose.models.Balance || mongoose.model<t.IBalance>('Balance', balanceSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/message.ts: * Creates or returns the Message model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/message.ts:export function createMessageModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/message.ts:      mongoose,
+./grep_mongoose.txt:./packages/data-schemas/src/models/message.ts:  return mongoose.models.Message || mongoose.model<t.IMessage>('Message', messageSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/preset.ts: * Creates or returns the Preset model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/preset.ts:export function createPresetModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/preset.ts:  return mongoose.models.Preset || mongoose.model<IPreset>('Preset', presetSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/transaction.ts: * Creates or returns the Transaction model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/transaction.ts:export function createTransactionModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/transaction.ts:    mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', transactionSchema)
+./grep_mongoose.txt:./packages/data-schemas/src/models/project.ts: * Creates or returns the Project model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/project.ts:export function createProjectModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/project.ts:  return mongoose.models.Project || mongoose.model<IMongoProject>('Project', projectSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/key.ts: * Creates or returns the Key model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/key.ts:export function createKeyModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/key.ts:  return mongoose.models.Key || mongoose.model<IKey>('Key', keySchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/agent.ts: * Creates or returns the Agent model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/agent.ts:export function createAgentModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/agent.ts:  return mongoose.models.Agent || mongoose.model<IAgent>('Agent', agentSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/sharedLink.ts: * Creates or returns the SharedLink model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/sharedLink.ts:export function createSharedLinkModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/sharedLink.ts:  return mongoose.models.SharedLink || mongoose.model<ISharedLink>('SharedLink', shareSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/agentCategory.ts: * Creates or returns the AgentCategory model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/agentCategory.ts:export function createAgentCategoryModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/agentCategory.ts:    mongoose.models.AgentCategory ||
+./grep_mongoose.txt:./packages/data-schemas/src/models/agentCategory.ts:    mongoose.model<t.IAgentCategory>('AgentCategory', agentCategorySchema)
+./grep_mongoose.txt:./packages/data-schemas/src/models/token.ts: * Creates or returns the Token model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/token.ts:export function createTokenModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/token.ts:  return mongoose.models.Token || mongoose.model<t.IToken>('Token', tokenSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/assistant.ts: * Creates or returns the Assistant model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/assistant.ts:export function createAssistantModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/assistant.ts:  return mongoose.models.Assistant || mongoose.model<IAssistant>('Assistant', assistantSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:export function createModels(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    User: createUserModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Token: createTokenModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Session: createSessionModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Balance: createBalanceModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Conversation: createConversationModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Message: createMessageModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Agent: createAgentModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    AgentApiKey: createAgentApiKeyModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    AgentCategory: createAgentCategoryModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    MCPServer: createMCPServerModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Role: createRoleModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Action: createActionModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Assistant: createAssistantModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    File: createFileModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Banner: createBannerModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Project: createProjectModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Key: createKeyModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    PluginAuth: createPluginAuthModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Transaction: createTransactionModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Preset: createPresetModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Prompt: createPromptModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    PromptGroup: createPromptGroupModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    ConversationTag: createConversationTagModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    SharedLink: createSharedLinkModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    ToolCall: createToolCallModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    MemoryEntry: createMemoryModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    AccessRole: createAccessRoleModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    AclEntry: createAclEntryModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/index.ts:    Group: createGroupModel(mongoose),
+./grep_mongoose.txt:./packages/data-schemas/src/models/aclEntry.ts: * Creates or returns the AclEntry model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/aclEntry.ts:export function createAclEntryModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/aclEntry.ts:  return mongoose.models.AclEntry || mongoose.model<t.IAclEntry>('AclEntry', aclEntrySchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/agentApiKey.ts:export function createAgentApiKeyModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/agentApiKey.ts:    mongoose.models.AgentApiKey || mongoose.model<IAgentApiKey>('AgentApiKey', agentApiKeySchema)
+./grep_mongoose.txt:./packages/data-schemas/src/models/pluginAuth.ts: * Creates or returns the PluginAuth model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/pluginAuth.ts:export function createPluginAuthModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/pluginAuth.ts:  return mongoose.models.PluginAuth || mongoose.model<IPluginAuth>('PluginAuth', pluginAuthSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/conversationTag.ts: * Creates or returns the ConversationTag model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/conversationTag.ts:export function createConversationTagModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/conversationTag.ts:    mongoose.models.ConversationTag ||
+./grep_mongoose.txt:./packages/data-schemas/src/models/conversationTag.ts:    mongoose.model<IConversationTag>('ConversationTag', conversationTagSchema)
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:import mongoose from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await mongoose.connect(mongoUri);
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await mongoose.disconnect();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createConversationModel(mongoose).create({
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createConversationModel(mongoose).create({
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createConversationModel(mongoose).create({
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createMessageModel(mongoose).create({
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createMessageModel(mongoose).create({
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    await createMessageModel(mongoose).create({
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:    const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const existingConvoId = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedConvoId1 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedConvoId2 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        new mongoose.Types.ObjectId().toString(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        new mongoose.Types.ObjectId().toString(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        new mongoose.Types.ObjectId().toString(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        new mongoose.Types.ObjectId().toString(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        new mongoose.Types.ObjectId().toString(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const existingId1 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const existingId2 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const id1 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const id2 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const existingIds = Array.from({ length: 5 }, () => new mongoose.Types.ObjectId().toString());
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedIds = Array.from({ length: 3 }, () => new mongoose.Types.ObjectId().toString());
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const id1 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const id2 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedId1 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedId2 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedId3 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const orphanedIds = Array.from({ length: 3 }, () => new mongoose.Types.ObjectId().toString());
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const existingId = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:        user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const messageModel = createMessageModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          messageId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:      const conversationModel = createConversationModel(mongoose) as SchemaWithMeiliMethods;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          conversationId: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:          user: new mongoose.Types.ObjectId(),
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.ts:} from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.ts:  mongoose: typeof import('mongoose');
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.ts:  const mongoose = options.mongoose;
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.ts:        const deletedConvos = await mongoose
+./grep_mongoose.txt:./packages/data-schemas/src/models/plugins/mongoMeili.ts:        const deletedMessages = await mongoose
+./grep_mongoose.txt:./packages/data-schemas/src/models/action.ts: * Creates or returns the Action model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/action.ts:export function createActionModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/action.ts:  return mongoose.models.Action || mongoose.model<IAction>('Action', actionSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/file.ts: * Creates or returns the File model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/file.ts:export function createFileModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/file.ts:  return mongoose.models.File || mongoose.model<IMongoFile>('File', fileSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/promptGroup.ts: * Creates or returns the PromptGroup model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/promptGroup.ts:export function createPromptGroupModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/promptGroup.ts:    mongoose.models.PromptGroup ||
+./grep_mongoose.txt:./packages/data-schemas/src/models/promptGroup.ts:    mongoose.model<IPromptGroupDocument>('PromptGroup', promptGroupSchema)
+./grep_mongoose.txt:./packages/data-schemas/src/models/session.ts: * Creates or returns the Session model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/session.ts:export function createSessionModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/session.ts:  return mongoose.models.Session || mongoose.model<t.ISession>('Session', sessionSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/models/banner.ts: * Creates or returns the Banner model using the provided mongoose instance and schema
+./grep_mongoose.txt:./packages/data-schemas/src/models/banner.ts:export function createBannerModel(mongoose: typeof import('mongoose')) {
+./grep_mongoose.txt:./packages/data-schemas/src/models/banner.ts:  return mongoose.models.Banner || mongoose.model<IBanner>('Banner', bannerSchema);
+./grep_mongoose.txt:./packages/data-schemas/src/schema/group.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/toolCall.ts:import mongoose, { Schema, Document, Types } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/toolCall.ts:      type: mongoose.Schema.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/schema/toolCall.ts:      type: mongoose.Schema.Types.Mixed,
+./grep_mongoose.txt:./packages/data-schemas/src/schema/toolCall.ts:      type: mongoose.Schema.Types.Mixed,
+./grep_mongoose.txt:./packages/data-schemas/src/schema/memory.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/prompt.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/accessRole.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/convo.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/user.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/mcpServer.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/role.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/categories.ts:import { Schema, Document } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/balance.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/message.ts:import mongoose, { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/message.ts:          type: mongoose.Schema.Types.Mixed,
+./grep_mongoose.txt:./packages/data-schemas/src/schema/message.ts:    files: { type: [{ type: mongoose.Schema.Types.Mixed }], default: undefined },
+./grep_mongoose.txt:./packages/data-schemas/src/schema/message.ts:      type: [{ type: mongoose.Schema.Types.Mixed }],
+./grep_mongoose.txt:./packages/data-schemas/src/schema/message.ts:    metadata: { type: mongoose.Schema.Types.Mixed },
+./grep_mongoose.txt:./packages/data-schemas/src/schema/message.ts:    attachments: { type: [{ type: mongoose.Schema.Types.Mixed }], default: undefined },
+./grep_mongoose.txt:./packages/data-schemas/src/schema/preset.ts:import { Schema, Document } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/transaction.ts:import mongoose, { Schema, Document, Types } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/transaction.ts:      type: mongoose.Schema.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/schema/project.ts:import { Schema, Document, Types } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/key.ts:import mongoose, { Schema, Document, Types } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/key.ts:    type: mongoose.Schema.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/schema/agent.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/agentCategory.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/token.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/assistant.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/aclEntry.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/agentApiKey.ts:import mongoose, { Schema, Document, Types } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/agentApiKey.ts:      type: mongoose.Schema.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/schema/pluginAuth.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/conversationTag.ts:import { Schema, Document } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/defaults.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/share.ts:import mongoose, { Schema, Document, Types } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/share.ts:    messages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Message' }],
+./grep_mongoose.txt:./packages/data-schemas/src/schema/action.ts:import mongoose, { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/action.ts:    type: mongoose.Schema.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/schema/file.ts:import mongoose, { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/file.ts:      type: mongoose.Schema.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/schema/promptGroup.ts:import { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/session.ts:import mongoose, { Schema } from 'mongoose';
+./grep_mongoose.txt:./packages/data-schemas/src/schema/session.ts:    type: mongoose.Schema.Types.ObjectId,
+./grep_mongoose.txt:./packages/data-schemas/src/schema/banner.ts:import { Schema, Document } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/index.js:function createApiKeyServiceDependencies(mongoose) {
+./grep_mongoose.txt:./packages/api/dist/index.js:    const methods = dataSchemas.createMethods(mongoose);
+./grep_mongoose.txt:./packages/api/dist/index.js:    constructor(mongoose) {
+./grep_mongoose.txt:./packages/api/dist/index.js:        if (!mongoose) {
+./grep_mongoose.txt:./packages/api/dist/index.js:            throw new Error('ServerConfigsDB requires mongoose instance');
+./grep_mongoose.txt:./packages/api/dist/index.js:        this._mongoose = mongoose;
+./grep_mongoose.txt:./packages/api/dist/index.js:        this._dbMethods = dataSchemas.createMethods(mongoose);
+./grep_mongoose.txt:./packages/api/dist/index.js:        this._aclService = new AccessControlService(mongoose);
+./grep_mongoose.txt:./packages/api/dist/index.js:            const Agent = this._mongoose.model('Agent');
+./grep_mongoose.txt:./packages/api/dist/index.js:                const Agent = this._mongoose.model('Agent');
+./grep_mongoose.txt:./packages/api/dist/index.js:    constructor(mongoose, allowedDomains) {
+./grep_mongoose.txt:./packages/api/dist/index.js:        this.dbConfigsRepo = new ServerConfigsDB(mongoose);
+./grep_mongoose.txt:./packages/api/dist/index.js:    static createInstance(mongoose, allowedDomains) {
+./grep_mongoose.txt:./packages/api/dist/index.js:        if (!mongoose) {
+./grep_mongoose.txt:./packages/api/dist/index.js:            throw new Error('MCPServersRegistry creation failed: mongoose instance is required for database operations. ' +
+./grep_mongoose.txt:./packages/api/dist/index.js:                'Ensure mongoose is initialized before creating the registry.');
+./grep_mongoose.txt:./packages/api/dist/index.js:        MCPServersRegistry.instance = new MCPServersRegistry(mongoose, allowedDomains);
+./grep_mongoose.txt:./packages/api/dist/index.js:function checkPromptPermissionsMigration({ methods, mongoose, PromptGroupModel, }) {
+./grep_mongoose.txt:./packages/api/dist/index.js:            const db = mongoose.connection.db;
+./grep_mongoose.txt:./packages/api/dist/index.js:function checkAgentPermissionsMigration({ methods, mongoose, AgentModel, }) {
+./grep_mongoose.txt:./packages/api/dist/index.js:            const db = mongoose.connection.db;
+./grep_mongoose.txt:./packages/api/dist/types/apiKeys/permissions.d.ts:import type { Types, Model } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/apiKeys/service.d.ts:import type { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/apiKeys/service.d.ts:export declare function createApiKeyServiceDependencies(mongoose: typeof import('mongoose')): ApiKeyServiceDependencies;
+./grep_mongoose.txt:./packages/api/dist/types/apiKeys/middleware.d.ts:import type { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/apiKeys/handlers.d.ts:import type { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/types/prompts.d.ts:import type { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/types/error.d.ts:import type { Error as MongooseError } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/prompts/format.d.ts:import type { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/prompts/migration.d.ts:import type { Model, Mongoose } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/prompts/migration.d.ts:    mongoose: Mongoose;
+./grep_mongoose.txt:./packages/api/dist/types/prompts/migration.d.ts:export declare function checkPromptPermissionsMigration({ methods, mongoose, PromptGroupModel, }: PromptMigrationCheckParams): Promise<PromptMigrationCheckResult>;
+./grep_mongoose.txt:./packages/api/dist/types/mcp/registry/db/ServerConfigsDB.d.ts:    private _mongoose;
+./grep_mongoose.txt:./packages/api/dist/types/mcp/registry/db/ServerConfigsDB.d.ts:    constructor(mongoose: typeof import('mongoose'));
+./grep_mongoose.txt:./packages/api/dist/types/mcp/registry/MCPServersRegistry.d.ts:    constructor(mongoose: typeof import('mongoose'), allowedDomains?: string[] | null);
+./grep_mongoose.txt:./packages/api/dist/types/mcp/registry/MCPServersRegistry.d.ts:    static createInstance(mongoose: typeof import('mongoose'), allowedDomains?: string[] | null): MCPServersRegistry;
+./grep_mongoose.txt:./packages/api/dist/types/db/utils.d.ts:import type { mongo } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/agents/resources.d.ts:import type { FilterQuery, QueryOptions, ProjectionType } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/agents/migration.d.ts:import type { Model, Mongoose } from 'mongoose';
+./grep_mongoose.txt:./packages/api/dist/types/agents/migration.d.ts:    mongoose: Mongoose;
+./grep_mongoose.txt:./packages/api/dist/types/agents/migration.d.ts:export declare function checkAgentPermissionsMigration({ methods, mongoose, AgentModel, }: MigrationCheckParams): Promise<MigrationCheckResult>;
+./grep_mongoose.txt:./packages/api/dist/types/middleware/balance.d.ts:import type { Model } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/apiKeys/permissions.ts:import type { Types, Model } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/apiKeys/middleware.ts:import type { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/apiKeys/handlers.ts:import type { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/apiKeys/service.ts:import type { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/apiKeys/service.ts:  mongoose: typeof import('mongoose'),
+./grep_mongoose.txt:./packages/api/src/apiKeys/service.ts:  const methods = createMethods(mongoose);
+./grep_mongoose.txt:./packages/api/src/files/filter.spec.ts:import { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/files/encode/document.spec.ts:import { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/utils/env.spec.ts:import { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/types/error.ts:import type { Error as MongooseError } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/types/prompts.ts:import type { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/prompts/migration.ts:import type { Model, Mongoose } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/prompts/migration.ts:  mongoose: Mongoose;
+./grep_mongoose.txt:./packages/api/src/prompts/migration.ts:  mongoose,
+./grep_mongoose.txt:./packages/api/src/prompts/migration.ts:    const db = mongoose.connection.db;
+./grep_mongoose.txt:./packages/api/src/prompts/format.ts:import type { Types } from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.cache_integration.spec.ts:    const mongoose = await import('mongoose');
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.cache_integration.spec.ts:    // Reset singleton and create new instance with mongoose
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.cache_integration.spec.ts:    MCPServersRegistry.createInstance(mongoose.default);
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.test.ts:// Mock mongoose for registry initialization
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.test.ts:const mockMongoose = {} as typeof import('mongoose');
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.test.ts:// Mock ServerConfigsDB to avoid mongoose dependency
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.test.ts:// Mock ServerConfigsDB to avoid mongoose dependency
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.test.ts:// Mock mongoose for registry initialization
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersRegistry.test.ts:const mockMongoose = {} as typeof import('mongoose');
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.cache_integration.spec.ts:    const mongoose = await import('mongoose');
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.cache_integration.spec.ts:    // Reset singleton and create new instance with mongoose
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/MCPServersInitializer.cache_integration.spec.ts:    MCPServersRegistry.createInstance(mongoose.default);
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:import mongoose from 'mongoose';
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:let ServerConfigsDB: new (mongoose: typeof import('mongoose')) => ServerConfigsDBType;
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  await mongoose.connect(mongoUri);
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  createModels(mongoose);
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  dbMethods = createMethods(mongoose);
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  serverConfigsDB = new ServerConfigsDB(mongoose);
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  await mongoose.disconnect();
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  await mongoose.models.MCPServer.deleteMany({});
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  await mongoose.models.Agent.deleteMany({});
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  await mongoose.models.AclEntry.deleteMany({});
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  const userId = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:  const userId2 = new mongoose.Types.ObjectId().toString();
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:    it('should throw error when mongoose is not provided', () => {
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      expect(() => new ServerConfigsDB(null as unknown as typeof mongoose)).toThrow(
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        'ServerConfigsDB requires mongoose instance',
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:    it('should create instance when mongoose is provided', () => {
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const instance = new ServerConfigsDB(mongoose);
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const aclEntry = await mongoose.models.AclEntry.findOne({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        principalId: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      const MCPServer = mongoose.models.MCPServer;
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      let aclEntries = await mongoose.models.AclEntry.find({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:      aclEntries = await mongoose.models.AclEntry.find({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const Agent = mongoose.models.Agent;
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          author: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const role = await mongoose.models.AccessRole.findOne({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const Agent = mongoose.models.Agent;
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          author: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const agentRole = await mongoose.models.AccessRole.findOne({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const Agent = mongoose.models.Agent;
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          author: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const mcpRole = await mongoose.models.AccessRole.findOne({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          resourceId: new mongoose.Types.ObjectId(created.config.dbId!),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const agentRole = await mongoose.models.AccessRole.findOne({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          principalId: new mongoose.Types.ObjectId(userId2),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        await mongoose.models.AclEntry.create({
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          resourceId: new mongoose.Types.ObjectId(created1.config.dbId!),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:          grantedBy: new mongoose.Types.ObjectId(userId),
+./grep_mongoose.txt:./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:        const Agent = mongoose.models.Agent;

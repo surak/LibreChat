@@ -52,21 +52,9 @@ const role = {
       return true;
     });
   },
-  findOne: async (filter) => {
-    const roles = await methods.listRoles();
-    return roles.find(r => {
-      for (const key in filter) {
-        if (r[key] !== filter[key]) return false;
-      }
-      return true;
-    });
-  },
-  create: async (data) => {
-    return data;
-  },
-  findOneAndUpdate: async (filter, update) => {
-    return update;
-  }
+  findOne: methods.findOneRole,
+  create: methods.createRole,
+  findOneAndUpdate: methods.findOneAndUpdateRole,
 };
 
 const balance = {
@@ -139,7 +127,38 @@ const agent = {
   create: methods.createAgent,
   findOneAndUpdate: methods.findOneAndUpdateAgent,
   deleteOne: methods.deleteOneAgent,
+  findOneAndDelete: methods.deleteOneAgent,
   countDocuments: methods.countAgents,
+  updateMany: async () => ({ modifiedCount: 0 }), // minimal shim
+};
+
+const User = {
+  findOne: methods.findUser,
+  findById: methods.getUserById,
+  create: methods.createUser,
+  findOneAndUpdate: methods.updateUser,
+  countDocuments: methods.countUsers,
+  updateMany: async (filter, update) => {
+     const users = await methods.listUsers();
+     let count = 0;
+     for (const user of users) {
+        let match = true;
+        for (const key in filter) {
+           if (user[key] !== filter[key]) { match = false; break; }
+        }
+        if (match) {
+           await methods.updateUser(user._id, update.$set || update);
+           count++;
+        }
+     }
+     return { modifiedCount: count };
+  }
+};
+
+const Session = {
+  create: methods.createSession,
+  findOne: methods.findSession,
+  deleteOne: methods.deleteSession,
 };
 
 module.exports = {
@@ -165,7 +184,20 @@ module.exports = {
   savePreset,
   deletePresets,
 
-  Files: methods.file,
+  Files: {
+    findFileById: methods.findFileById,
+    getFiles: methods.getFiles,
+    getToolFilesByIds: methods.getToolFilesByIds,
+    getCodeGeneratedFiles: methods.getCodeGeneratedFiles,
+    getUserCodeFiles: methods.getUserCodeFiles,
+    createFile: methods.createFile,
+    updateFile: methods.updateFile,
+    updateFileUsage: methods.updateFileUsage,
+    deleteFile: methods.deleteFile,
+    deleteFiles: methods.deleteFiles,
+    deleteFileByFilter: methods.deleteFileByFilter,
+    batchUpdateFiles: methods.batchUpdateFiles,
+  },
 
   aclEntry,
   userGroup,
@@ -181,4 +213,6 @@ module.exports = {
   project,
   conversationTag,
   agent,
+  User,
+  Session,
 };

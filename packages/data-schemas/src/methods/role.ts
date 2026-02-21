@@ -39,9 +39,58 @@ export function createRoleMethods() {
     return Array.from(roleStore.values());
   }
 
+  /**
+   * Seed default roles (alias for initializeRoles)
+   */
+  async function seedDefaultRoles() {
+    return await initializeRoles();
+  }
+
+  /**
+   * Create a new role
+   */
+  async function createRole(data: any) {
+    const role = {
+      ...data,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    };
+    roleStore.set(data.name, role);
+    return role;
+  }
+
+  /**
+   * Find a role by filter
+   */
+  async function findOneRole(filter: any) {
+    const roles = await listRoles();
+    return roles.find(r => {
+      for (const key in filter) {
+        if (r[key] !== filter[key]) return false;
+      }
+      return true;
+    }) || null;
+  }
+
+  /**
+   * Update a role by filter
+   */
+  async function findOneAndUpdateRole(filter: any, update: any) {
+    const role = await findOneRole(filter);
+    if (!role) return null;
+    const data = update.$set || update;
+    Object.assign(role, data);
+    role.updatedAt = new Date().toISOString();
+    return role;
+  }
+
   return {
     listRoles,
     initializeRoles,
+    seedDefaultRoles,
+    createRole,
+    findOneRole,
+    findOneAndUpdateRole,
   };
 }
 
