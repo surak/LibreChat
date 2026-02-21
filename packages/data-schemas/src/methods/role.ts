@@ -1,47 +1,96 @@
 import { roleDefaults, SystemRoles } from 'librechat-data-provider';
 
-// Factory function that takes mongoose instance and returns the methods
-export function createRoleMethods(mongoose: typeof import('mongoose')) {
+const roleStore = new Map<string, any>();
+
+// Factory function that returns the methods
+export function createRoleMethods() {
   /**
    * Initialize default roles in the system.
-   * Creates the default roles (ADMIN, USER) if they don't exist in the database.
-   * Updates existing roles with new permission types if they're missing.
    */
   async function initializeRoles() {
-    const Role = mongoose.models.Role;
-
     for (const roleName of [SystemRoles.ADMIN, SystemRoles.USER]) {
-      let role = await Role.findOne({ name: roleName });
+      let role = Array.from(roleStore.values()).find(r => r.name === roleName);
       const defaultPerms = roleDefaults[roleName].permissions;
 
       if (!role) {
-        role = new Role(roleDefaults[roleName]);
+        role = {
+           name: roleName,
+           ...roleDefaults[roleName],
+           updatedAt: new Date().toISOString(),
+           createdAt: new Date().toISOString()
+        };
       } else {
-        const permissions = role.toObject()?.permissions ?? {};
         role.permissions = role.permissions || {};
         for (const permType of Object.keys(defaultPerms)) {
-          if (permissions[permType] == null || Object.keys(permissions[permType]).length === 0) {
+          if (role.permissions[permType] == null || Object.keys(role.permissions[permType]).length === 0) {
             role.permissions[permType] = defaultPerms[permType as keyof typeof defaultPerms];
           }
         }
+        role.updatedAt = new Date().toISOString();
       }
-      await role.save();
+      roleStore.set(roleName, role);
     }
   }
 
   /**
-   * List all roles in the system (for testing purposes)
-   * Returns an array of all roles with their names and permissions
+   * List all roles in the system
    */
   async function listRoles() {
-    const Role = mongoose.models.Role;
-    return await Role.find({}).select('name permissions').lean();
+    return Array.from(roleStore.values());
   }
 
-  // Return all methods you want to expose
+  /**
+   * Seed default roles (alias for initializeRoles)
+   */
+  async function seedDefaultRoles() {
+    return await initializeRoles();
+  }
+
+  /**
+   * Create a new role
+   */
+  async function createRole(data: any) {
+    const role = {
+      ...data,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    };
+    roleStore.set(data.name, role);
+    return role;
+  }
+
+  /**
+   * Find a role by filter
+   */
+  async function findOneRole(filter: any) {
+    const roles = await listRoles();
+    return roles.find(r => {
+      for (const key in filter) {
+        if (r[key] !== filter[key]) return false;
+      }
+      return true;
+    }) || null;
+  }
+
+  /**
+   * Update a role by filter
+   */
+  async function findOneAndUpdateRole(filter: any, update: any) {
+    const role = await findOneRole(filter);
+    if (!role) return null;
+    const data = update.$set || update;
+    Object.assign(role, data);
+    role.updatedAt = new Date().toISOString();
+    return role;
+  }
+
   return {
     listRoles,
     initializeRoles,
+    seedDefaultRoles,
+    createRole,
+    findOneRole,
+    findOneAndUpdateRole,
   };
 }
 

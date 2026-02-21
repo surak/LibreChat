@@ -1,7 +1,6 @@
 const { logger } = require('@librechat/data-schemas');
 const { createTempChatExpirationDate } = require('@librechat/api');
 const { getMessages, deleteMessages } = require('./Message');
-const { Conversation } = require('~/db/models');
 
 // In-memory store for conversations
 const conversationStore = new Map();
@@ -167,7 +166,7 @@ module.exports = {
    *
    * @async
    * @function
-   * @param {string|ObjectId} user - The user's ID.
+   * @param {string} user - The user's ID.
    * @param {Object} filter - Additional filter criteria for the conversations to be deleted.
    * @returns {Promise<{ n: number, ok: number, deletedCount: number, messages: { n: number, ok: number, deletedCount: number } }>}
    *          An object containing the count of deleted conversations and associated messages.

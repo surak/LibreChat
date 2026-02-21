@@ -1,7 +1,7 @@
 import React from 'react';
 import * as Ariakit from '@ariakit/react';
 import { ChevronRight } from 'lucide-react';
-import { MCPIcon, PinIcon } from '@librechat/client';
+import { MCPIcon } from '@librechat/client';
 import MCPServerMenuItem from '~/components/MCP/MCPServerMenuItem';
 import MCPConfigDialog from '~/components/MCP/MCPConfigDialog';
 import { useBadgeRowContext } from '~/Providers';
@@ -17,9 +17,7 @@ const MCPSubMenu = React.forwardRef<HTMLDivElement, MCPSubMenuProps>(
     const localize = useLocalize();
     const { storageContextKey, mcpServerManager } = useBadgeRowContext();
     const {
-      isPinned,
       mcpValues,
-      setIsPinned,
       placeholderText,
       selectableServers,
       connectionStatus,
@@ -58,28 +56,11 @@ const MCPSubMenu = React.forwardRef<HTMLDivElement, MCPSubMenuProps>(
               />
             }
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pr-6">
               <MCPIcon className="h-5 w-5 flex-shrink-0 text-text-primary" aria-hidden="true" />
               <span>{placeholder || placeholderText}</span>
               <ChevronRight className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
             </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsPinned(!isPinned);
-              }}
-              className={cn(
-                'rounded p-1 transition-all duration-200',
-                'hover:bg-surface-tertiary hover:shadow-sm',
-                !isPinned && 'text-text-secondary hover:text-text-primary',
-              )}
-              aria-label={isPinned ? localize('com_ui_unpin') : localize('com_ui_pin')}
-            >
-              <div className="h-4 w-4">
-                <PinIcon unpin={isPinned} />
-              </div>
-            </button>
           </Ariakit.MenuItem>
 
           <Ariakit.Menu

@@ -1,6 +1,4 @@
-import type { Types } from 'mongoose';
-
-export type ObjectId = Types.ObjectId;
+export type ObjectId = string;
 export * from './app';
 export * from './user';
 export * from './token';

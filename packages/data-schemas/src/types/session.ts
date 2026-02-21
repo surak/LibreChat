@@ -1,9 +1,8 @@
-import type { Document, Types } from 'mongoose';
-
-export interface ISession extends Document {
+export interface ISession {
+  _id: string;
   refreshTokenHash: string;
   expiration: Date;
-  user: Types.ObjectId;
+  user: string;
 }
 
 export interface CreateSessionOptions {

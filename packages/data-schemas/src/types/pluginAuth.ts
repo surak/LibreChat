@@ -1,6 +1,5 @@
-import type { Document } from 'mongoose';
-
-export interface IPluginAuth extends Document {
+export interface IPluginAuth {
+  _id: string;
   authField: string;
   value: string;
   userId: string;

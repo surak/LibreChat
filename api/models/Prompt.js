@@ -1,4 +1,3 @@
-const { ObjectId } = require('mongodb');
 const { escapeRegExp } = require('@librechat/api');
 const { logger } = require('@librechat/data-schemas');
 const {
@@ -14,87 +13,7 @@ const {
   getProjectByName,
 } = require('./Project');
 const { removeAllPermissions } = require('~/server/services/PermissionService');
-const { PromptGroup, Prompt, AclEntry } = require('~/db/models');
-
-/**
- * Create a pipeline for the aggregation to get prompt groups
- * @param {Object} query
- * @param {number} skip
- * @param {number} limit
- * @returns {[Object]} - The pipeline for the aggregation
- */
-const createGroupPipeline = (query, skip, limit) => {
-  return [
-    { $match: query },
-    { $sort: { createdAt: -1 } },
-    { $skip: skip },
-    { $limit: limit },
-    {
-      $lookup: {
-        from: 'prompts',
-        localField: 'productionId',
-        foreignField: '_id',
-        as: 'productionPrompt',
-      },
-    },
-    { $unwind: { path: '$productionPrompt', preserveNullAndEmptyArrays: true } },
-    {
-      $project: {
-        name: 1,
-        numberOfGenerations: 1,
-        oneliner: 1,
-        category: 1,
-        projectIds: 1,
-        productionId: 1,
-        author: 1,
-        authorName: 1,
-        createdAt: 1,
-        updatedAt: 1,
-        'productionPrompt.prompt': 1,
-        // 'productionPrompt._id': 1,
-        // 'productionPrompt.type': 1,
-      },
-    },
-  ];
-};
-
-/**
- * Create a pipeline for the aggregation to get all prompt groups
- * @param {Object} query
- * @param {Partial<MongoPromptGroup>} $project
- * @returns {[Object]} - The pipeline for the aggregation
- */
-const createAllGroupsPipeline = (
-  query,
-  $project = {
-    name: 1,
-    oneliner: 1,
-    category: 1,
-    author: 1,
-    authorName: 1,
-    createdAt: 1,
-    updatedAt: 1,
-    command: 1,
-    'productionPrompt.prompt': 1,
-  },
-) => {
-  return [
-    { $match: query },
-    { $sort: { createdAt: -1 } },
-    {
-      $lookup: {
-        from: 'prompts',
-        localField: 'productionId',
-        foreignField: '_id',
-        as: 'productionPrompt',
-      },
-    },
-    { $unwind: { path: '$productionPrompt', preserveNullAndEmptyArrays: true } },
-    {
-      $project,
-    },
-  ];
-};
+const { promptGroup: PromptGroup, prompt: Prompt, aclEntry: AclEntry } = require('./index');
 
 /**
  * Get all prompt groups with filters
@@ -130,12 +49,24 @@ const getAllPromptGroups = async (req, filter) => {
       if (project && project.promptGroupIds && project.promptGroupIds.length > 0) {
         const projectQuery = { _id: { $in: project.promptGroupIds }, ...query };
         delete projectQuery.author;
+        // In stateless mode we just combine the results later or use $or logic if supported by in-memory find
         combinedQuery = searchSharedOnly ? projectQuery : { $or: [projectQuery, query] };
       }
     }
 
-    const promptGroupsPipeline = createAllGroupsPipeline(combinedQuery);
-    return await PromptGroup.aggregate(promptGroupsPipeline).exec();
+    const groups = await PromptGroup.find(combinedQuery);
+
+    // simulate lookup and project
+    for (const group of groups) {
+      if (group.productionId) {
+        const productionPrompt = await Prompt.findOne({ _id: group.productionId });
+        if (productionPrompt) {
+          group.productionPrompt = { prompt: productionPrompt.prompt };
+        }
+      }
+    }
+
+    return groups;
   } catch (error) {
     console.error('Error getting all prompt groups', error);
     return { message: 'Error getting all prompt groups' };
@@ -175,7 +106,6 @@ const getPromptGroups = async (req, filter) => {
     let combinedQuery = query;
 
     if (searchShared) {
-      // const projects = req.user.projects || []; // TODO: handle multiple projects
       const project = await getProjectByName(Constants.GLOBAL_PROJECT_NAME, 'promptGroupIds');
       if (project && project.promptGroupIds && project.promptGroupIds.length > 0) {
         const projectQuery = { _id: { $in: project.promptGroupIds }, ...query };
@@ -184,23 +114,24 @@ const getPromptGroups = async (req, filter) => {
       }
     }
 
+    const allGroups = await PromptGroup.find(combinedQuery);
+    allGroups.sort((a, b) => b.createdAt - a.createdAt);
+
+    const totalPromptGroups = allGroups.length;
     const skip = (validatedPageNumber - 1) * validatedPageSize;
-    const limit = validatedPageSize;
+    const paginatedGroups = allGroups.slice(skip, skip + validatedPageSize);
 
-    const promptGroupsPipeline = createGroupPipeline(combinedQuery, skip, limit);
-    const totalPromptGroupsPipeline = [{ $match: combinedQuery }, { $count: 'total' }];
-
-    const [promptGroupsResults, totalPromptGroupsResults] = await Promise.all([
-      PromptGroup.aggregate(promptGroupsPipeline).exec(),
-      PromptGroup.aggregate(totalPromptGroupsPipeline).exec(),
-    ]);
-
-    const promptGroups = promptGroupsResults;
-    const totalPromptGroups =
-      totalPromptGroupsResults.length > 0 ? totalPromptGroupsResults[0].total : 0;
+    for (const group of paginatedGroups) {
+      if (group.productionId) {
+        const productionPrompt = await Prompt.findOne({ _id: group.productionId });
+        if (productionPrompt) {
+          group.productionPrompt = { prompt: productionPrompt.prompt };
+        }
+      }
+    }
 
     return {
-      promptGroups,
+      promptGroups: paginatedGroups,
       pageNumber: validatedPageNumber.toString(),
       pageSize: validatedPageSize.toString(),
       pages: Math.ceil(totalPromptGroups / validatedPageSize).toString(),
@@ -219,19 +150,17 @@ const getPromptGroups = async (req, filter) => {
  * @returns {Promise<TDeletePromptGroupResponse>}
  */
 const deletePromptGroup = async ({ _id, author, role }) => {
-  // Build query - with ACL, author is optional
   const query = { _id };
-  const groupQuery = { groupId: new ObjectId(_id) };
+  const groupQuery = { groupId: _id };
 
-  // Legacy: Add author filter if provided (backward compatibility)
   if (author && role !== SystemRoles.ADMIN) {
     query.author = author;
     groupQuery.author = author;
   }
 
-  const response = await PromptGroup.deleteOne(query);
+  const response = await PromptGroup.findOneAndDelete(query);
 
-  if (!response || response.deletedCount === 0) {
+  if (!response) {
     throw new Error('Prompt group not found');
   }
 
@@ -250,10 +179,10 @@ const deletePromptGroup = async ({ _id, author, role }) => {
 /**
  * Get prompt groups by accessible IDs with optional cursor-based pagination.
  * @param {Object} params - The parameters for getting accessible prompt groups.
- * @param {Array} [params.accessibleIds] - Array of prompt group ObjectIds the user has ACL access to.
+ * @param {Array} [params.accessibleIds] - Array of prompt group IDs the user has ACL access to.
  * @param {Object} [params.otherParams] - Additional query parameters (including author filter).
  * @param {number} [params.limit] - Number of prompt groups to return (max 100). If not provided, returns all prompt groups.
- * @param {string} [params.after] - Cursor for pagination - get prompt groups after this cursor. // base64 encoded JSON string with updatedAt and _id.
+ * @param {string} [params.after] - Cursor for pagination - get prompt groups after this cursor.
  * @returns {Promise<Object>} A promise that resolves to an object containing the prompt groups data and pagination info.
  */
 async function getListPromptGroupsByAccess({
@@ -265,89 +194,45 @@ async function getListPromptGroupsByAccess({
   const isPaginated = limit !== null && limit !== undefined;
   const normalizedLimit = isPaginated ? Math.min(Math.max(1, parseInt(limit) || 20), 100) : null;
 
-  // Build base query combining ACL accessible prompt groups with other filters
   const baseQuery = { ...otherParams, _id: { $in: accessibleIds } };
 
-  // Add cursor condition
+  const groups = await PromptGroup.find(baseQuery);
+  groups.sort((a, b) => b.updatedAt - a.updatedAt);
+
+  let filteredGroups = groups;
   if (after && typeof after === 'string' && after !== 'undefined' && after !== 'null') {
     try {
       const cursor = JSON.parse(Buffer.from(after, 'base64').toString('utf8'));
       const { updatedAt, _id } = cursor;
+      const cursorDate = new Date(updatedAt);
 
-      const cursorCondition = {
-        $or: [
-          { updatedAt: { $lt: new Date(updatedAt) } },
-          { updatedAt: new Date(updatedAt), _id: { $gt: new ObjectId(_id) } },
-        ],
-      };
-
-      // Merge cursor condition with base query
-      if (Object.keys(baseQuery).length > 0) {
-        baseQuery.$and = [{ ...baseQuery }, cursorCondition];
-        // Remove the original conditions from baseQuery to avoid duplication
-        Object.keys(baseQuery).forEach((key) => {
-          if (key !== '$and') delete baseQuery[key];
-        });
-      } else {
-        Object.assign(baseQuery, cursorCondition);
+      const index = groups.findIndex(g => g.updatedAt.getTime() === cursorDate.getTime() && g._id === _id);
+      if (index !== -1) {
+        filteredGroups = groups.slice(index + 1);
       }
     } catch (error) {
       logger.warn('Invalid cursor:', error.message);
     }
   }
 
-  // Build aggregation pipeline
-  const pipeline = [{ $match: baseQuery }, { $sort: { updatedAt: -1, _id: 1 } }];
+  const hasMore = isPaginated ? filteredGroups.length > normalizedLimit : false;
+  const data = isPaginated ? filteredGroups.slice(0, normalizedLimit) : filteredGroups;
 
-  // Only apply limit if pagination is requested
-  if (isPaginated) {
-    pipeline.push({ $limit: normalizedLimit + 1 });
+  for (const group of data) {
+    if (group.author) {
+      group.author = group.author.toString();
+    }
+    if (group.productionId) {
+      const productionPrompt = await Prompt.findOne({ _id: group.productionId });
+      if (productionPrompt) {
+        group.productionPrompt = { prompt: productionPrompt.prompt };
+      }
+    }
   }
 
-  // Add lookup for production prompt
-  pipeline.push(
-    {
-      $lookup: {
-        from: 'prompts',
-        localField: 'productionId',
-        foreignField: '_id',
-        as: 'productionPrompt',
-      },
-    },
-    { $unwind: { path: '$productionPrompt', preserveNullAndEmptyArrays: true } },
-    {
-      $project: {
-        name: 1,
-        numberOfGenerations: 1,
-        oneliner: 1,
-        category: 1,
-        projectIds: 1,
-        productionId: 1,
-        author: 1,
-        authorName: 1,
-        createdAt: 1,
-        updatedAt: 1,
-        'productionPrompt.prompt': 1,
-      },
-    },
-  );
-
-  const promptGroups = await PromptGroup.aggregate(pipeline).exec();
-
-  const hasMore = isPaginated ? promptGroups.length > normalizedLimit : false;
-  const data = (isPaginated ? promptGroups.slice(0, normalizedLimit) : promptGroups).map(
-    (group) => {
-      if (group.author) {
-        group.author = group.author.toString();
-      }
-      return group;
-    },
-  );
-
-  // Generate next cursor only if paginated
   let nextCursor = null;
   if (isPaginated && hasMore && data.length > 0) {
-    const lastGroup = promptGroups[normalizedLimit - 1];
+    const lastGroup = data[data.length - 1];
     nextCursor = Buffer.from(
       JSON.stringify({
         updatedAt: lastGroup.updatedAt.toISOString(),
@@ -382,30 +267,20 @@ module.exports = {
 
       let newPromptGroup = await PromptGroup.findOneAndUpdate(
         { ...group, author, authorName, productionId: null },
-        { $setOnInsert: { ...group, author, authorName, productionId: null } },
-        { new: true, upsert: true },
-      )
-        .lean()
-        .select('-__v')
-        .exec();
+        { $set: { ...group, author, authorName, productionId: null } },
+        { upsert: true },
+      );
 
       const newPrompt = await Prompt.findOneAndUpdate(
         { ...prompt, author, groupId: newPromptGroup._id },
-        { $setOnInsert: { ...prompt, author, groupId: newPromptGroup._id } },
-        { new: true, upsert: true },
-      )
-        .lean()
-        .select('-__v')
-        .exec();
+        { $set: { ...prompt, author, groupId: newPromptGroup._id } },
+        { upsert: true },
+      );
 
-      newPromptGroup = await PromptGroup.findByIdAndUpdate(
-        newPromptGroup._id,
-        { productionId: newPrompt._id },
-        { new: true },
-      )
-        .lean()
-        .select('-__v')
-        .exec();
+      newPromptGroup = await PromptGroup.findOneAndUpdate(
+        { _id: newPromptGroup._id },
+        { $set: { productionId: newPrompt._id } },
+      );
 
       return {
         prompt: newPrompt,
@@ -432,19 +307,7 @@ module.exports = {
         author,
       };
 
-      /** @type {TPrompt} */
-      let newPrompt;
-      try {
-        newPrompt = await Prompt.create(newPromptData);
-      } catch (error) {
-        if (error?.message?.includes('groupId_1_version_1')) {
-          await Prompt.db.collection('prompts').dropIndex('groupId_1_version_1');
-        } else {
-          throw error;
-        }
-        newPrompt = await Prompt.create(newPromptData);
-      }
-
+      const newPrompt = await Prompt.create(newPromptData);
       return { prompt: newPrompt };
     } catch (error) {
       logger.error('Error saving prompt', error);
@@ -453,7 +316,8 @@ module.exports = {
   },
   getPrompts: async (filter) => {
     try {
-      return await Prompt.find(filter).sort({ createdAt: -1 }).lean();
+      const prompts = await Prompt.find(filter);
+      return prompts.sort((a, b) => b.createdAt - a.createdAt);
     } catch (error) {
       logger.error('Error getting prompts', error);
       return { message: 'Error getting prompts' };
@@ -461,10 +325,7 @@ module.exports = {
   },
   getPrompt: async (filter) => {
     try {
-      if (filter.groupId) {
-        filter.groupId = new ObjectId(filter.groupId);
-      }
-      return await Prompt.findOne(filter).lean();
+      return await Prompt.findOne(filter);
     } catch (error) {
       logger.error('Error getting prompt', error);
       return { message: 'Error getting prompt' };
@@ -477,31 +338,14 @@ module.exports = {
    */
   getRandomPromptGroups: async (filter) => {
     try {
-      const result = await PromptGroup.aggregate([
-        {
-          $match: {
-            category: { $ne: '' },
-          },
-        },
-        {
-          $group: {
-            _id: '$category',
-            promptGroup: { $first: '$$ROOT' },
-          },
-        },
-        {
-          $replaceRoot: { newRoot: '$promptGroup' },
-        },
-        {
-          $sample: { size: +filter.limit + +filter.skip },
-        },
-        {
-          $skip: +filter.skip,
-        },
-        {
-          $limit: +filter.limit,
-        },
-      ]);
+      const allGroups = await PromptGroup.find({ category: { $ne: '' } });
+
+      // Simple random sampling for in-memory
+      const shuffled = allGroups.sort(() => 0.5 - Math.random());
+      const skip = +filter.skip || 0;
+      const limit = +filter.limit || 10;
+      const result = shuffled.slice(skip, skip + limit);
+
       return { prompts: result };
     } catch (error) {
       logger.error('Error getting prompt groups', error);
@@ -510,13 +354,17 @@ module.exports = {
   },
   getPromptGroupsWithPrompts: async (filter) => {
     try {
-      return await PromptGroup.findOne(filter)
-        .populate({
-          path: 'prompts',
-          select: '-_id -__v -user',
+      const group = await PromptGroup.findOne(filter);
+      if (!group) return null;
+
+      const prompts = await Prompt.find({ groupId: group._id });
+      return {
+        ...group,
+        prompts: prompts.map(p => {
+          const { _id, __v, user, ...rest } = p;
+          return rest;
         })
-        .select('-_id -__v -user')
-        .lean();
+      };
     } catch (error) {
       logger.error('Error getting prompt groups', error);
       return { message: 'Error getting prompt groups' };
@@ -524,7 +372,7 @@ module.exports = {
   },
   getPromptGroup: async (filter) => {
     try {
-      return await PromptGroup.findOne(filter).lean();
+      return await PromptGroup.findOne(filter);
     } catch (error) {
       logger.error('Error getting prompt group', error);
       return { message: 'Error getting prompt group' };
@@ -534,32 +382,26 @@ module.exports = {
    * Deletes a prompt and its corresponding prompt group if it is the last prompt in the group.
    *
    * @param {Object} options - The options for deleting the prompt.
-   * @param {ObjectId|string} options.promptId - The ID of the prompt to delete.
-   * @param {ObjectId|string} options.groupId - The ID of the prompt's group.
-   * @param {ObjectId|string} options.author - The ID of the prompt's author.
+   * @param {string} options.promptId - The ID of the prompt to delete.
+   * @param {string} options.groupId - The ID of the prompt's group.
+   * @param {string} options.author - The ID of the prompt's author.
    * @param {string} options.role - The role of the prompt's author.
    * @return {Promise<TDeletePromptResponse>} An object containing the result of the deletion.
-   * If the prompt was deleted successfully, the object will have a property 'prompt' with the value 'Prompt deleted successfully'.
-   * If the prompt group was deleted successfully, the object will have a property 'promptGroup' with the message 'Prompt group deleted successfully' and id of the deleted group.
-   * If there was an error deleting the prompt, the object will have a property 'message' with the value 'Error deleting prompt'.
    */
   deletePrompt: async ({ promptId, groupId, author, role }) => {
     const query = { _id: promptId, groupId, author };
     if (role === SystemRoles.ADMIN) {
       delete query.author;
     }
-    const { deletedCount } = await Prompt.deleteOne(query);
-    if (deletedCount === 0) {
+    const deleted = await Prompt.findOneAndDelete(query);
+    if (!deleted) {
       throw new Error('Failed to delete the prompt');
     }
 
-    const remainingPrompts = await Prompt.find({ groupId })
-      .select('_id')
-      .sort({ createdAt: 1 })
-      .lean();
+    const remainingPrompts = await Prompt.find({ groupId });
+    remainingPrompts.sort((a, b) => a.createdAt - b.createdAt);
 
     if (remainingPrompts.length === 0) {
-      // Remove all ACL entries for the promptGroup when deleting the last prompt
       try {
         await removeAllPermissions({
           resourceType: ResourceType.PROMPTGROUP,
@@ -569,7 +411,7 @@ module.exports = {
         logger.error('Error removing promptGroup permissions:', error);
       }
 
-      await PromptGroup.deleteOne({ _id: groupId });
+      await PromptGroup.findOneAndDelete({ _id: groupId });
       await removeGroupFromAllProjects(groupId);
 
       return {
@@ -580,11 +422,11 @@ module.exports = {
         },
       };
     } else {
-      const promptGroup = await PromptGroup.findById(groupId).lean();
-      if (promptGroup.productionId.toString() === promptId.toString()) {
-        await PromptGroup.updateOne(
+      const promptGroup = await PromptGroup.findOne({ _id: groupId });
+      if (promptGroup && promptGroup.productionId.toString() === promptId.toString()) {
+        await PromptGroup.findOneAndUpdate(
           { _id: groupId },
-          { productionId: remainingPrompts[remainingPrompts.length - 1]._id },
+          { $set: { productionId: remainingPrompts[remainingPrompts.length - 1]._id } },
         );
       }
 
@@ -598,7 +440,7 @@ module.exports = {
    */
   deleteUserPrompts: async (req, userId) => {
     try {
-      const promptGroups = await getAllPromptGroups(req, { author: new ObjectId(userId) });
+      const promptGroups = await getAllPromptGroups(req, { author: userId });
 
       if (promptGroups.length === 0) {
         return;
@@ -615,8 +457,8 @@ module.exports = {
         resourceId: { $in: groupIds },
       });
 
-      await PromptGroup.deleteMany({ author: new ObjectId(userId) });
-      await Prompt.deleteMany({ author: new ObjectId(userId) });
+      await PromptGroup.deleteMany({ author: userId });
+      await Prompt.deleteMany({ author: userId });
     } catch (error) {
       logger.error('[deleteUserPrompts] General error:', error);
     }
@@ -649,10 +491,7 @@ module.exports = {
       }
 
       const updateData = { ...data, ...updateOps };
-      const updatedDoc = await PromptGroup.findOneAndUpdate(filter, updateData, {
-        new: true,
-        upsert: false,
-      });
+      const updatedDoc = await PromptGroup.findOneAndUpdate(filter, updateData);
 
       if (!updatedDoc) {
         throw new Error('Prompt group not found');
@@ -671,19 +510,16 @@ module.exports = {
    */
   makePromptProduction: async (promptId) => {
     try {
-      const prompt = await Prompt.findById(promptId).lean();
+      const prompt = await Prompt.findOne({ _id: promptId });
 
       if (!prompt) {
         throw new Error('Prompt not found');
       }
 
-      await PromptGroup.findByIdAndUpdate(
-        prompt.groupId,
-        { productionId: prompt._id },
-        { new: true },
-      )
-        .lean()
-        .exec();
+      await PromptGroup.findOneAndUpdate(
+        { _id: prompt.groupId },
+        { $set: { productionId: prompt._id } }
+      );
 
       return {
         message: 'Prompt production made successfully',
@@ -695,8 +531,8 @@ module.exports = {
   },
   updatePromptLabels: async (_id, labels) => {
     try {
-      const response = await Prompt.updateOne({ _id }, { $set: { labels } });
-      if (response.matchedCount === 0) {
+      const response = await Prompt.findOneAndUpdate({ _id }, { $set: { labels } });
+      if (!response) {
         return { message: 'Prompt not found' };
       }
       return { message: 'Prompt labels updated successfully' };

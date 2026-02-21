@@ -14,7 +14,7 @@ const {
 const { findAllArtifacts, replaceArtifactContent } = require('~/server/services/Artifacts/update');
 const { requireJwtAuth, validateMessageReq } = require('~/server/middleware');
 const { getConvosQueried } = require('~/models/Conversation');
-const { Message } = require('~/db/models');
+const { Message } = require('~/models');
 
 const router = express.Router();
 router.use(requireJwtAuth);

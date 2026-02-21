@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const crypto = require('node:crypto');
 const { logger } = require('@librechat/data-schemas');
 const { getCustomEndpointConfig } = require('@librechat/api');
@@ -19,7 +18,7 @@ const {
 } = require('./Project');
 const { removeAllPermissions } = require('~/server/services/PermissionService');
 const { getMCPServerTools } = require('~/server/services/Config');
-const { Agent, AclEntry, User } = require('~/db/models');
+const { agent: Agent, aclEntry: AclEntry, user: User } = require('./index');
 const { getActions } = require('./Action');
 
 /**
@@ -67,7 +66,7 @@ const createAgent = async (agentData) => {
     mcpServerNames: extractMCPServerNames(agentData.tools),
   };
 
-  return (await Agent.create(initialAgentData)).toObject();
+  return await Agent.create(initialAgentData);
 };
 
 /**
@@ -78,7 +77,7 @@ const createAgent = async (agentData) => {
  * @param {string} searchParameter.author - The user ID of the agent's author.
  * @returns {Promise<Agent|null>} The agent document as a plain object, or null if not found.
  */
-const getAgent = async (searchParameter) => await Agent.findOne(searchParameter).lean();
+const getAgent = async (searchParameter) => await Agent.findOne(searchParameter);
 
 /**
  * Get multiple agent documents based on the provided search parameters.
@@ -86,7 +85,7 @@ const getAgent = async (searchParameter) => await Agent.findOne(searchParameter)
  * @param {Object} searchParameter - The search parameters to find agents.
  * @returns {Promise<Agent[]>} Array of agent documents as plain objects.
  */
-const getAgents = async (searchParameter) => await Agent.find(searchParameter).lean();
+const getAgents = async (searchParameter) => await Agent.find(searchParameter);
 
 /**
  * Load an agent based on the provided ID
@@ -291,7 +290,7 @@ const isDuplicateVersion = (updateData, currentData, versions, actionsHash = nul
         break;
       }
 
-      // Special handling for projectIds (MongoDB ObjectIds)
+      // Special handling for projectIds
       if (field === 'projectIds') {
         const wouldBeIds = wouldBeArr.map((id) => id.toString()).sort();
         const versionIds = lastVersionArr.map((id) => id.toString()).sort();
@@ -391,7 +390,6 @@ const isDuplicateVersion = (updateData, currentData, versions, actionsHash = nul
  */
 const updateAgent = async (searchParameter, updateData, options = {}) => {
   const { updatingUserId = null, forceVersion = false, skipVersioning = false } = options;
-  const mongoOptions = { new: true, upsert: false };
 
   const currentAgent = await Agent.findOne(searchParameter);
   if (currentAgent) {
@@ -402,7 +400,7 @@ const updateAgent = async (searchParameter, updateData, options = {}) => {
       versions,
       author: _author,
       ...versionData
-    } = currentAgent.toObject();
+    } = currentAgent;
     const { $push, $pull, $addToSet, ...directUpdates } = updateData;
 
     // Sync mcpServerNames when tools are updated
@@ -448,7 +446,7 @@ const updateAgent = async (searchParameter, updateData, options = {}) => {
       const duplicateVersion = isDuplicateVersion(updateData, versionData, versions, actionsHash);
       if (duplicateVersion && !forceVersion) {
         // No changes detected, return the current agent without creating a new version
-        const agentObj = currentAgent.toObject();
+        const agentObj = { ...currentAgent };
         agentObj.version = versions.length;
         return agentObj;
       }
@@ -467,7 +465,7 @@ const updateAgent = async (searchParameter, updateData, options = {}) => {
 
     // Always store updatedBy field to track who made the change
     if (updatingUserId) {
-      versionEntry.updatedBy = new mongoose.Types.ObjectId(updatingUserId);
+      versionEntry.updatedBy = updatingUserId;
     }
 
     if (shouldCreateVersion) {
@@ -478,7 +476,7 @@ const updateAgent = async (searchParameter, updateData, options = {}) => {
     }
   }
 
-  return Agent.findOneAndUpdate(searchParameter, updateData, mongoOptions).lean();
+  return await Agent.findOneAndUpdate(searchParameter, updateData);
 };
 
 /**
@@ -497,17 +495,19 @@ const addAgentResourceFile = async ({ req, agent_id, tool_resource, file_id }) =
     throw new Error('Agent not found for adding resource file');
   }
   const fileIdsPath = `tool_resources.${tool_resource}.file_ids`;
-  await Agent.updateOne(
-    {
-      id: agent_id,
-      [`${fileIdsPath}`]: { $exists: false },
-    },
-    {
-      $set: {
-        [`${fileIdsPath}`]: [],
+
+  // Ensure the path exists
+  const currentToolResources = agent.tool_resources || {};
+  if (!currentToolResources[tool_resource] || !currentToolResources[tool_resource].file_ids) {
+    await Agent.findOneAndUpdate(
+      { id: agent_id },
+      {
+        $set: {
+          [`tool_resources.${tool_resource}.file_ids`]: [],
+        },
       },
-    },
-  );
+    );
+  }
 
   const updateData = {
     $addToSet: {
@@ -548,32 +548,18 @@ const removeAgentResourceFiles = async ({ agent_id, files }) => {
 
   // Step 1: Atomically remove file IDs using $pull
   const pullOps = {};
-  const resourcesToCheck = new Set();
   for (const [resource, fileIds] of Object.entries(filesByResource)) {
     const fileIdsPath = `tool_resources.${resource}.file_ids`;
     pullOps[fileIdsPath] = { $in: fileIds };
-    resourcesToCheck.add(resource);
   }
 
   const updatePullData = { $pull: pullOps };
-  const agentAfterPull = await Agent.findOneAndUpdate(searchParameter, updatePullData, {
-    new: true,
-  }).lean();
+  const agentAfterPull = await Agent.findOneAndUpdate(searchParameter, updatePullData);
 
   if (!agentAfterPull) {
-    // Agent might have been deleted concurrently, or never existed.
-    // Check if it existed before trying to throw.
-    const agentExists = await getAgent(searchParameter);
-    if (!agentExists) {
-      throw new Error('Agent not found for removing resource files');
-    }
-    // If it existed but findOneAndUpdate returned null, something else went wrong.
-    throw new Error('Failed to update agent during file removal (pull step)');
+    throw new Error('Agent not found for removing resource files');
   }
 
-  // Return the agent state directly after the $pull operation.
-  // Skipping the $unset step for now to simplify and test core $pull atomicity.
-  // Empty arrays might remain, but the removal itself should be correct.
   return agentAfterPull;
 };
 
@@ -659,10 +645,10 @@ const deleteUserAgents = async (userId) => {
 /**
  * Get agents by accessible IDs with optional cursor-based pagination.
  * @param {Object} params - The parameters for getting accessible agents.
- * @param {Array} [params.accessibleIds] - Array of agent ObjectIds the user has ACL access to.
+ * @param {Array} [params.accessibleIds] - Array of agent IDs the user has ACL access to.
  * @param {Object} [params.otherParams] - Additional query parameters (including author filter).
  * @param {number} [params.limit] - Number of agents to return (max 100). If not provided, returns all agents.
- * @param {string} [params.after] - Cursor for pagination - get agents after this cursor. // base64 encoded JSON string with updatedAt and _id.
+ * @param {string} [params.after] - Cursor for pagination - get agents after this cursor.
  * @returns {Promise<Object>} A promise that resolves to an object containing the agents data and pagination info.
  */
 const getListAgentsByAccess = async ({
@@ -677,67 +663,34 @@ const getListAgentsByAccess = async ({
   // Build base query combining ACL accessible agents with other filters
   const baseQuery = { ...otherParams, _id: { $in: accessibleIds } };
 
-  // Add cursor condition
+  // Note: Simplification of cursor logic for stateless mode
+  // in-memory find will handle sorting
+  const agents = await Agent.find(baseQuery);
+  agents.sort((a, b) => b.updatedAt - a.updatedAt);
+
+  let filteredAgents = agents;
   if (after) {
     try {
       const cursor = JSON.parse(Buffer.from(after, 'base64').toString('utf8'));
       const { updatedAt, _id } = cursor;
+      const cursorDate = new Date(updatedAt);
 
-      const cursorCondition = {
-        $or: [
-          { updatedAt: { $lt: new Date(updatedAt) } },
-          { updatedAt: new Date(updatedAt), _id: { $gt: new mongoose.Types.ObjectId(_id) } },
-        ],
-      };
-
-      // Merge cursor condition with base query
-      if (Object.keys(baseQuery).length > 0) {
-        baseQuery.$and = [{ ...baseQuery }, cursorCondition];
-        // Remove the original conditions from baseQuery to avoid duplication
-        Object.keys(baseQuery).forEach((key) => {
-          if (key !== '$and') delete baseQuery[key];
-        });
-      } else {
-        Object.assign(baseQuery, cursorCondition);
+      const index = agents.findIndex(a => a.updatedAt.getTime() === cursorDate.getTime() && a._id === _id);
+      if (index !== -1) {
+        filteredAgents = agents.slice(index + 1);
       }
     } catch (error) {
       logger.warn('Invalid cursor:', error.message);
     }
   }
 
-  let query = Agent.find(baseQuery, {
-    id: 1,
-    _id: 1,
-    name: 1,
-    avatar: 1,
-    author: 1,
-    projectIds: 1,
-    description: 1,
-    updatedAt: 1,
-    category: 1,
-    support_contact: 1,
-    is_promoted: 1,
-  }).sort({ updatedAt: -1, _id: 1 });
-
-  // Only apply limit if pagination is requested
-  if (isPaginated) {
-    query = query.limit(normalizedLimit + 1);
-  }
-
-  const agents = await query.lean();
-
-  const hasMore = isPaginated ? agents.length > normalizedLimit : false;
-  const data = (isPaginated ? agents.slice(0, normalizedLimit) : agents).map((agent) => {
-    if (agent.author) {
-      agent.author = agent.author.toString();
-    }
-    return agent;
-  });
+  const hasMore = isPaginated ? filteredAgents.length > normalizedLimit : false;
+  const data = isPaginated ? filteredAgents.slice(0, normalizedLimit) : filteredAgents;
 
   // Generate next cursor only if paginated
   let nextCursor = null;
   if (isPaginated && hasMore && data.length > 0) {
-    const lastAgent = agents[normalizedLimit - 1];
+    const lastAgent = data[data.length - 1];
     nextCursor = Buffer.from(
       JSON.stringify({
         updatedAt: lastAgent.updatedAt.toISOString(),
@@ -765,7 +718,7 @@ const getListAgentsByAccess = async ({
  * @param {string} params.agentId - The ID of the agent to update.
  * @param {string[]} [params.projectIds] - Array of project IDs to add to the agent.
  * @param {string[]} [params.removeProjectIds] - Array of project IDs to remove from the agent.
- * @returns {Promise<MongoAgent>} The updated agent document.
+ * @returns {Promise<Agent>} The updated agent document.
  * @throws {Error} If there's an error updating the agent or projects.
  */
 const updateAgentProjects = async ({ user, agentId, projectIds, removeProjectIds }) => {
@@ -801,6 +754,8 @@ const updateAgentProjects = async ({ user, agentId, projectIds, removeProjectIds
   if (updatedAgent) {
     return updatedAgent;
   }
+
+  // rollback projects if agent update failed
   if (updateOps.$addToSet) {
     for (const projectId of projectIds) {
       await removeAgentIdsFromProject(projectId, [agentId]);
@@ -820,7 +775,7 @@ const updateAgentProjects = async ({ user, agentId, projectIds, removeProjectIds
  * @param {string} searchParameter.id - The ID of the agent to revert.
  * @param {string} [searchParameter.author] - The user ID of the agent's author.
  * @param {number} versionIndex - The index of the version to revert to in the versions array.
- * @returns {Promise<MongoAgent>} The updated agent document after reverting.
+ * @returns {Promise<Agent>} The updated agent document after reverting.
  * @throws {Error} If the agent is not found or the specified version does not exist.
  */
 const revertAgentVersion = async (searchParameter, versionIndex) => {
@@ -845,7 +800,7 @@ const revertAgentVersion = async (searchParameter, versionIndex) => {
   delete updateData.author;
   delete updateData.updatedBy;
 
-  return Agent.findOneAndUpdate(searchParameter, updateData, { new: true }).lean();
+  return await Agent.findOneAndUpdate(searchParameter, updateData);
 };
 
 /**
@@ -889,29 +844,17 @@ const generateActionMetadataHash = async (actionIds, actions) => {
     })
     .join(';');
 
-  // Use Web Crypto API to generate hash
-  const encoder = new TextEncoder();
-  const data = encoder.encode(metadataString);
-  const hashBuffer = await crypto.webcrypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-
-  return hashHex;
+  // Use crypto to generate hash
+  return crypto.createHash('sha256').update(metadataString).digest('hex');
 };
 /**
  * Counts the number of promoted agents.
  * @returns  {Promise<number>} - The count of promoted agents
  */
 const countPromotedAgents = async () => {
-  const count = await Agent.countDocuments({ is_promoted: true });
-  return count;
+  const agents = await Agent.find({ is_promoted: true });
+  return agents.length;
 };
-
-/**
- * Load a default agent based on the endpoint
- * @param {string} endpoint
- * @returns {Agent | null}
- */
 
 module.exports = {
   getAgent,

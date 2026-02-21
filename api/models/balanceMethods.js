@@ -3,7 +3,7 @@ const { ViolationTypes } = require('librechat-data-provider');
 const { createAutoRefillTransaction } = require('./Transaction');
 const { logViolation } = require('~/cache');
 const { getMultiplier } = require('./tx');
-const { Balance } = require('~/db/models');
+const { balance: Balance } = require('./index');
 
 function isInvalidDate(date) {
   return isNaN(date);
@@ -26,7 +26,7 @@ const checkBalanceRecord = async function ({
   const tokenCost = amount * multiplier;
 
   // Retrieve the balance record
-  let record = await Balance.findOne({ user }).lean();
+  let record = await Balance.findOne({ user });
   if (!record) {
     logger.debug('[Balance.check] No balance record found for user', { user });
     return {

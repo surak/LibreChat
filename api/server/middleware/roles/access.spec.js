@@ -1,20 +1,21 @@
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 const { checkAccess, generateCheckAccess } = require('@librechat/api');
 const { PermissionTypes, Permissions } = require('librechat-data-provider');
 const { getRoleByName } = require('~/models/Role');
-const { Role } = require('~/db/models');
+const { createMethods } = require('@librechat/data-schemas');
 
 // Mock the logger from @librechat/data-schemas
-jest.mock('@librechat/data-schemas', () => ({
-  ...jest.requireActual('@librechat/data-schemas'),
-  logger: {
-    warn: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
+jest.mock('@librechat/data-schemas', () => {
+  const actual = jest.requireActual('@librechat/data-schemas');
+  return {
+    ...actual,
+    logger: {
+      warn: jest.fn(),
+      error: jest.fn(),
+      info: jest.fn(),
+      debug: jest.fn(),
+    },
+  };
+});
 
 // Mock the cache to use a simple in-memory implementation
 const mockCache = new Map();
@@ -26,24 +27,20 @@ jest.mock('~/cache/getLogStores', () => {
   }));
 });
 
+let methods;
+let Role;
+
 describe('Access Middleware', () => {
-  let mongoServer;
   let req, res, next;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    methods = createMethods();
+    Role = methods.role;
   });
 
   beforeEach(async () => {
-    await mongoose.connection.dropDatabase();
-    mockCache.clear(); // Clear the cache between tests
+    Role._store.clear();
+    mockCache.clear();
 
     // Create test roles
     await Role.create({
@@ -166,7 +163,6 @@ describe('Access Middleware', () => {
     });
 
     test('should return false if user has only some of multiple permissions', async () => {
-      // User has USE but not CREATE, so should fail when checking for both
       const result = await checkAccess({
         req: {},
         user: { id: 'user123', role: 'user' },
@@ -178,7 +174,6 @@ describe('Access Middleware', () => {
     });
 
     test('should return true if user has all of multiple permissions', async () => {
-      // Admin has both USE and CREATE
       const result = await checkAccess({
         req: {},
         user: { id: 'admin123', role: 'admin' },
@@ -294,7 +289,6 @@ describe('Access Middleware', () => {
     });
 
     test('should handle database errors gracefully', async () => {
-      // Mock getRoleByName to throw an error
       const mockGetRoleByName = jest
         .fn()
         .mockRejectedValue(new Error('Database connection failed'));

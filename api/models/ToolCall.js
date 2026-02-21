@@ -1,4 +1,4 @@
-const { ToolCall } = require('~/db/models');
+const { ToolCall } = require('./index');
 
 // In-memory store for tool calls
 const toolCallStore = new Map();

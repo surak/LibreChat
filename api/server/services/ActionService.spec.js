@@ -1,56 +1,25 @@
 const { Constants, actionDomainSeparator } = require('librechat-data-provider');
 const { domainParser } = require('./ActionService');
 
-jest.mock('keyv');
-
 const globalCache = {};
 jest.mock('~/cache/getLogStores', () => {
   return jest.fn().mockImplementation(() => {
-    const EventEmitter = require('events');
-    const { CacheKeys } = require('librechat-data-provider');
-
-    class KeyvMongo extends EventEmitter {
-      constructor(url = 'mongodb://127.0.0.1:27017', options) {
-        super();
-        this.ttlSupport = false;
-        url = url ?? {};
-        if (typeof url === 'string') {
-          url = { url };
-        }
-        if (url.uri) {
-          url = { url: url.uri, ...url };
-        }
-        this.opts = {
-          url,
-          collection: 'keyv',
-          ...url,
-          ...options,
-        };
-      }
-
-      get = async (key) => {
-        return new Promise((resolve) => {
-          resolve(globalCache[key] || null);
-        });
-      };
-
-      set = async (key, value) => {
-        return new Promise((resolve) => {
-          globalCache[key] = value;
-          resolve(true);
-        });
-      };
-    }
-
-    return new KeyvMongo('', {
-      namespace: CacheKeys.ENCODED_DOMAINS,
-      ttl: 0,
-    });
+    return {
+      get: async (key) => globalCache[key] || null,
+      set: async (key, value) => {
+        globalCache[key] = value;
+        return true;
+      },
+    };
   });
 });
 
 describe('domainParser', () => {
   const TLD = '.com';
+
+  beforeEach(() => {
+    for (const key in globalCache) delete globalCache[key];
+  });
 
   // Non-azure request
   it('does not return domain as is if not azure', async () => {
@@ -81,7 +50,7 @@ describe('domainParser', () => {
 
     await domainParser(domain, true);
 
-    const cachedValue = await globalCache[encodedDomain];
+    const cachedValue = globalCache[encodedDomain];
     expect(cachedValue).toEqual(Buffer.from(domain).toString('base64'));
   });
 

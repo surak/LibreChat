@@ -1,21 +1,15 @@
 const { GLOBAL_PROJECT_NAME } = require('librechat-data-provider').Constants;
-const { Project } = require('~/db/models');
+const { project: Project } = require('./index');
 
 /**
  * Retrieve a project by ID and convert the found project document to a plain object.
  *
  * @param {string} projectId - The ID of the project to find and return as a plain object.
- * @param {string|string[]} [fieldsToSelect] - The fields to include or exclude in the returned document.
- * @returns {Promise<IMongoProject>} A plain object representing the project document, or `null` if no project is found.
+ * @param {string|string[]} [_fieldsToSelect] - The fields to include or exclude in the returned document.
+ * @returns {Promise<Object>} A plain object representing the project document, or `null` if no project is found.
  */
-const getProjectById = async function (projectId, fieldsToSelect = null) {
-  const query = Project.findById(projectId);
-
-  if (fieldsToSelect) {
-    query.select(fieldsToSelect);
-  }
-
-  return await query.lean();
+const getProjectById = async function (projectId) {
+  return await Project.findOne({ _id: projectId });
 };
 
 /**
@@ -23,20 +17,18 @@ const getProjectById = async function (projectId, fieldsToSelect = null) {
  * If the project with the given name doesn't exist and the name is "instance", create it and return the lean version.
  *
  * @param {string} projectName - The name of the project to find or create.
- * @param {string|string[]} [fieldsToSelect] - The fields to include or exclude in the returned document.
- * @returns {Promise<IMongoProject>} A plain object representing the project document.
+ * @param {string|string[]} [_fieldsToSelect] - The fields to include or exclude in the returned document.
+ * @returns {Promise<Object>} A plain object representing the project document.
  */
-const getProjectByName = async function (projectName, fieldsToSelect = null) {
-  const query = { name: projectName };
-  const update = { $setOnInsert: { name: projectName } };
-  const options = {
-    new: true,
-    upsert: projectName === GLOBAL_PROJECT_NAME,
-    lean: true,
-    select: fieldsToSelect,
-  };
+const getProjectByName = async function (projectName) {
+  let project = await Project.findOne({ name: projectName });
 
-  return await Project.findOneAndUpdate(query, update, options);
+  if (!project && projectName === GLOBAL_PROJECT_NAME) {
+    project = await Project.create({ name: projectName, promptGroupIds: [], agentIds: [] });
+    return project;
+  }
+
+  return project;
 };
 
 /**
@@ -44,14 +36,19 @@ const getProjectByName = async function (projectName, fieldsToSelect = null) {
  *
  * @param {string} projectId - The ID of the project to update.
  * @param {string[]} promptGroupIds - The array of prompt group IDs to add to the project.
- * @returns {Promise<IMongoProject>} The updated project document.
+ * @returns {Promise<Object>} The updated project document.
  */
 const addGroupIdsToProject = async function (projectId, promptGroupIds) {
-  return await Project.findByIdAndUpdate(
-    projectId,
-    { $addToSet: { promptGroupIds: { $each: promptGroupIds } } },
-    { new: true },
-  );
+  const project = await Project.findOne({ _id: projectId });
+  if (project) {
+    const existingIds = new Set(project.promptGroupIds || []);
+    for (const id of promptGroupIds) {
+      existingIds.add(id);
+    }
+    project.promptGroupIds = Array.from(existingIds);
+    project.updatedAt = new Date();
+  }
+  return project;
 };
 
 /**
@@ -59,14 +56,16 @@ const addGroupIdsToProject = async function (projectId, promptGroupIds) {
  *
  * @param {string} projectId - The ID of the project to update.
  * @param {string[]} promptGroupIds - The array of prompt group IDs to remove from the project.
- * @returns {Promise<IMongoProject>} The updated project document.
+ * @returns {Promise<Object>} The updated project document.
  */
 const removeGroupIdsFromProject = async function (projectId, promptGroupIds) {
-  return await Project.findByIdAndUpdate(
-    projectId,
-    { $pull: { promptGroupIds: { $in: promptGroupIds } } },
-    { new: true },
-  );
+  const project = await Project.findOne({ _id: projectId });
+  if (project) {
+    const existingIds = project.promptGroupIds || [];
+    project.promptGroupIds = existingIds.filter(id => !promptGroupIds.includes(id));
+    project.updatedAt = new Date();
+  }
+  return project;
 };
 
 /**
@@ -76,7 +75,13 @@ const removeGroupIdsFromProject = async function (projectId, promptGroupIds) {
  * @returns {Promise<void>}
  */
 const removeGroupFromAllProjects = async (promptGroupId) => {
-  await Project.updateMany({}, { $pull: { promptGroupIds: promptGroupId } });
+  const projects = await Project.find({});
+  for (const project of projects) {
+    if (project.promptGroupIds && project.promptGroupIds.includes(promptGroupId)) {
+      project.promptGroupIds = project.promptGroupIds.filter(pid => pid !== promptGroupId);
+      project.updatedAt = new Date();
+    }
+  }
 };
 
 /**
@@ -84,14 +89,19 @@ const removeGroupFromAllProjects = async (promptGroupId) => {
  *
  * @param {string} projectId - The ID of the project to update.
  * @param {string[]} agentIds - The array of agent IDs to add to the project.
- * @returns {Promise<IMongoProject>} The updated project document.
+ * @returns {Promise<Object>} The updated project document.
  */
 const addAgentIdsToProject = async function (projectId, agentIds) {
-  return await Project.findByIdAndUpdate(
-    projectId,
-    { $addToSet: { agentIds: { $each: agentIds } } },
-    { new: true },
-  );
+  const project = await Project.findOne({ _id: projectId });
+  if (project) {
+    const existingIds = new Set(project.agentIds || []);
+    for (const id of agentIds) {
+      existingIds.add(id);
+    }
+    project.agentIds = Array.from(existingIds);
+    project.updatedAt = new Date();
+  }
+  return project;
 };
 
 /**
@@ -99,14 +109,16 @@ const addAgentIdsToProject = async function (projectId, agentIds) {
  *
  * @param {string} projectId - The ID of the project to update.
  * @param {string[]} agentIds - The array of agent IDs to remove from the project.
- * @returns {Promise<IMongoProject>} The updated project document.
+ * @returns {Promise<Object>} The updated project document.
  */
 const removeAgentIdsFromProject = async function (projectId, agentIds) {
-  return await Project.findByIdAndUpdate(
-    projectId,
-    { $pull: { agentIds: { $in: agentIds } } },
-    { new: true },
-  );
+  const project = await Project.findOne({ _id: projectId });
+  if (project) {
+    const existingIds = project.agentIds || [];
+    project.agentIds = existingIds.filter(id => !agentIds.includes(id));
+    project.updatedAt = new Date();
+  }
+  return project;
 };
 
 /**
@@ -116,7 +128,13 @@ const removeAgentIdsFromProject = async function (projectId, agentIds) {
  * @returns {Promise<void>}
  */
 const removeAgentFromAllProjects = async (agentId) => {
-  await Project.updateMany({}, { $pull: { agentIds: agentId } });
+  const projects = await Project.find({});
+  for (const project of projects) {
+    if (project.agentIds && project.agentIds.includes(agentId)) {
+      project.agentIds = project.agentIds.filter(aid => aid !== agentId);
+      project.updatedAt = new Date();
+    }
+  }
 };
 
 module.exports = {

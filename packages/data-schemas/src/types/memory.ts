@@ -1,8 +1,7 @@
-import type { Types, Document } from 'mongoose';
-
 // Base memory interfaces
-export interface IMemoryEntry extends Document {
-  userId: Types.ObjectId;
+export interface IMemoryEntry {
+  _id: string;
+  userId: string;
   key: string;
   value: string;
   tokenCount?: number;
@@ -10,8 +9,8 @@ export interface IMemoryEntry extends Document {
 }
 
 export interface IMemoryEntryLean {
-  _id: Types.ObjectId;
-  userId: Types.ObjectId;
+  _id: string;
+  userId: string;
   key: string;
   value: string;
   tokenCount?: number;
@@ -21,19 +20,19 @@ export interface IMemoryEntryLean {
 
 // Method parameter interfaces
 export interface SetMemoryParams {
-  userId: string | Types.ObjectId;
+  userId: string;
   key: string;
   value: string;
   tokenCount?: number;
 }
 
 export interface DeleteMemoryParams {
-  userId: string | Types.ObjectId;
+  userId: string;
   key: string;
 }
 
 export interface GetFormattedMemoriesParams {
-  userId: string | Types.ObjectId;
+  userId: string;
 }
 
 // Result interfaces

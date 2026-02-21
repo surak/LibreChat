@@ -4,7 +4,7 @@ This document provides guidelines for AI agents working on the LibreChat codebas
 
 ## Project Overview
 
-LibreChat is a monorepo with workspaces for `api` (backend), `client` (frontend React app), and `packages/*` (shared libraries). The project uses React 18, TypeScript, Express, MongoDB, and supports multiple AI providers.
+LibreChat is a monorepo with workspaces for `api` (backend), `client` (frontend React app), and `packages/*` (shared libraries). The project uses React 18, TypeScript, Express, and is currently running in **stateless mode** using in-memory storage instead of MongoDB.
 
 ## Build Commands
 
@@ -133,7 +133,7 @@ cd api && npm run test:ci -- --testPathPattern="filename.spec.js"
 ```
 /                       # Root package.json (scripts, config)
 ├── api/                # Express backend
-│   ├── models/         # Mongoose models
+│   ├── models/         # In-memory models
 │   ├── server/         # Express routes, controllers
 │   ├── utils/          # Utility functions
 │   └── middleware/     # Express middleware

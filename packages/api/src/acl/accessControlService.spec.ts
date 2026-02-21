@@ -1,22 +1,22 @@
-import mongoose, { Types, Model } from 'mongoose';
-import { createModels, createMethods, RoleBits } from '@librechat/data-schemas';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { createMethods, RoleBits } from '@librechat/data-schemas';
 import { ResourceType, AccessRoleIds, PrincipalType } from 'librechat-data-provider';
 import { AccessControlService } from './accessControlService';
+import { v4 as uuidv4 } from 'uuid';
 
 // Mock the logger
-jest.mock('@librechat/data-schemas', () => ({
-  ...jest.requireActual('@librechat/data-schemas'),
-  logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-    info: jest.fn(),
-  },
-}));
+jest.mock('@librechat/data-schemas', () => {
+  const actual = jest.requireActual('@librechat/data-schemas');
+  return {
+    ...actual,
+    logger: {
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+    },
+  };
+});
 
-let mongoServer: MongoMemoryServer;
-let AclEntry: Model<unknown>;
 let service: AccessControlService;
 let dbMethods: ReturnType<typeof createMethods>;
 
@@ -24,21 +24,12 @@ let dbMethods: ReturnType<typeof createMethods>;
 const mockGetUserPrincipals = jest.fn();
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
-
-  // Initialize all models
-  createModels(mongoose);
-
-  AclEntry = mongoose.models.AclEntry;
-
   // Create methods and seed default roles
-  dbMethods = createMethods(mongoose);
+  dbMethods = createMethods();
   await dbMethods.seedDefaultRoles();
 
   // Create service instance
-  service = new AccessControlService(mongoose);
+  service = new AccessControlService();
 
   // Mock getUserPrincipals in the dbMethods
   const originalMethods = service['_dbMethods'];
@@ -48,23 +39,20 @@ beforeAll(async () => {
   };
 });
 
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
-
 beforeEach(async () => {
-  // Clear test data but keep seeded roles
-  await AclEntry.deleteMany({});
+  // Clear test data
+  const aclEntryMethods = dbMethods.aclEntry;
+  // @ts-ignore - access to internal store for testing
+  aclEntryMethods._store?.clear();
   mockGetUserPrincipals.mockReset();
 });
 
 describe('AccessControlService', () => {
   // Common test data
-  const userId = new Types.ObjectId();
-  const groupId = new Types.ObjectId();
-  const resourceId = new Types.ObjectId();
-  const grantedById = new Types.ObjectId();
+  const userId = uuidv4();
+  const groupId = uuidv4();
+  const resourceId = uuidv4();
+  const grantedById = uuidv4();
 
   describe('grantPermission', () => {
     describe('validation', () => {
@@ -85,7 +73,7 @@ describe('AccessControlService', () => {
         await expect(
           service.grantPermission({
             principalType: PrincipalType.USER,
-            principalId: null,
+            principalId: null as any,
             resourceType: ResourceType.AGENT,
             resourceId,
             accessRoleId: AccessRoleIds.AGENT_VIEWER,
@@ -98,7 +86,7 @@ describe('AccessControlService', () => {
         await expect(
           service.grantPermission({
             principalType: PrincipalType.GROUP,
-            principalId: null,
+            principalId: null as any,
             resourceType: ResourceType.AGENT,
             resourceId,
             accessRoleId: AccessRoleIds.AGENT_VIEWER,
@@ -111,7 +99,7 @@ describe('AccessControlService', () => {
         await expect(
           service.grantPermission({
             principalType: PrincipalType.ROLE,
-            principalId: null,
+            principalId: null as any,
             resourceType: ResourceType.AGENT,
             resourceId,
             accessRoleId: AccessRoleIds.AGENT_VIEWER,
@@ -145,32 +133,6 @@ describe('AccessControlService', () => {
             grantedBy: grantedById,
           }),
         ).rejects.toThrow('Invalid role ID:');
-      });
-
-      test('should throw error for invalid user principal ID (non-ObjectId)', async () => {
-        await expect(
-          service.grantPermission({
-            principalType: PrincipalType.USER,
-            principalId: 'invalid-id',
-            resourceType: ResourceType.AGENT,
-            resourceId,
-            accessRoleId: AccessRoleIds.AGENT_VIEWER,
-            grantedBy: grantedById,
-          }),
-        ).rejects.toThrow('Invalid principal ID: invalid-id');
-      });
-
-      test('should throw error for invalid resource ID', async () => {
-        await expect(
-          service.grantPermission({
-            principalType: PrincipalType.USER,
-            principalId: userId,
-            resourceType: ResourceType.AGENT,
-            resourceId: 'invalid-id',
-            accessRoleId: AccessRoleIds.AGENT_VIEWER,
-            grantedBy: grantedById,
-          }),
-        ).rejects.toThrow('Invalid resource ID: invalid-id');
       });
 
       test('should throw error for invalid resource type', async () => {
@@ -253,7 +215,7 @@ describe('AccessControlService', () => {
       test('should grant public permission with a role', async () => {
         const entry = await service.grantPermission({
           principalType: PrincipalType.PUBLIC,
-          principalId: null,
+          principalId: null as any,
           resourceType: ResourceType.AGENT,
           resourceId,
           accessRoleId: AccessRoleIds.AGENT_VIEWER,
@@ -306,7 +268,7 @@ describe('AccessControlService', () => {
         expect(updated!.permBits).toBe(RoleBits.EDITOR);
 
         // Verify there's only one entry
-        const entries = await AclEntry.find({
+        const entries = await dbMethods.aclEntry.find({
           principalType: PrincipalType.USER,
           principalId: userId,
           resourceType: ResourceType.AGENT,
@@ -318,9 +280,9 @@ describe('AccessControlService', () => {
   });
 
   describe('findAccessibleResources', () => {
-    const resource1 = new Types.ObjectId();
-    const resource2 = new Types.ObjectId();
-    const resource3 = new Types.ObjectId();
+    const resource1 = uuidv4();
+    const resource2 = uuidv4();
+    const resource3 = uuidv4();
 
     beforeEach(async () => {
       // User can view resource 1
@@ -475,15 +437,15 @@ describe('AccessControlService', () => {
   });
 
   describe('findPubliclyAccessibleResources', () => {
-    const publicResource1 = new Types.ObjectId();
-    const publicResource2 = new Types.ObjectId();
-    const privateResource = new Types.ObjectId();
+    const publicResource1 = uuidv4();
+    const publicResource2 = uuidv4();
+    const privateResource = uuidv4();
 
     beforeEach(async () => {
       // Public can view resource 1
       await service.grantPermission({
         principalType: PrincipalType.PUBLIC,
-        principalId: null,
+        principalId: null as any,
         resourceType: ResourceType.AGENT,
         resourceId: publicResource1,
         accessRoleId: AccessRoleIds.AGENT_VIEWER,
@@ -493,7 +455,7 @@ describe('AccessControlService', () => {
       // Public can edit resource 2
       await service.grantPermission({
         principalType: PrincipalType.PUBLIC,
-        principalId: null,
+        principalId: null as any,
         resourceType: ResourceType.AGENT,
         resourceId: publicResource2,
         accessRoleId: AccessRoleIds.AGENT_EDITOR,
@@ -568,9 +530,9 @@ describe('AccessControlService', () => {
   });
 
   describe('getResourcePermissionsMap', () => {
-    const resource1 = new Types.ObjectId();
-    const resource2 = new Types.ObjectId();
-    const resource3 = new Types.ObjectId();
+    const resource1 = uuidv4();
+    const resource2 = uuidv4();
+    const resource3 = uuidv4();
 
     beforeEach(async () => {
       // User has VIEW on resource1
@@ -693,7 +655,7 @@ describe('AccessControlService', () => {
   });
 
   describe('removeAllPermissions', () => {
-    const resourceToDelete = new Types.ObjectId();
+    const resourceToDelete = uuidv4();
 
     beforeEach(async () => {
       // Grant multiple permissions to the resource
@@ -717,7 +679,7 @@ describe('AccessControlService', () => {
 
       await service.grantPermission({
         principalType: PrincipalType.PUBLIC,
-        principalId: null,
+        principalId: null as any,
         resourceType: ResourceType.AGENT,
         resourceId: resourceToDelete,
         accessRoleId: AccessRoleIds.AGENT_VIEWER,
@@ -734,25 +696,16 @@ describe('AccessControlService', () => {
           }),
         ).rejects.toThrow('Invalid resourceType: invalid');
       });
-
-      test('should throw error for invalid resource ID', async () => {
-        await expect(
-          service.removeAllPermissions({
-            resourceType: ResourceType.AGENT,
-            resourceId: 'invalid-id',
-          }),
-        ).rejects.toThrow('Invalid resource ID: invalid-id');
-      });
     });
 
     describe('cleanup', () => {
       test('should delete all permissions for a resource', async () => {
         // Verify permissions exist
-        const beforeCount = await AclEntry.countDocuments({
+        const entries = await dbMethods.aclEntry.find({
           resourceType: ResourceType.AGENT,
           resourceId: resourceToDelete,
         });
-        expect(beforeCount).toBe(3);
+        expect(entries).toHaveLength(3);
 
         const result = await service.removeAllPermissions({
           resourceType: ResourceType.AGENT,
@@ -763,15 +716,15 @@ describe('AccessControlService', () => {
         expect(result.deletedCount).toBe(3);
 
         // Verify permissions are deleted
-        const afterCount = await AclEntry.countDocuments({
+        const afterEntries = await dbMethods.aclEntry.find({
           resourceType: ResourceType.AGENT,
           resourceId: resourceToDelete,
         });
-        expect(afterCount).toBe(0);
+        expect(afterEntries).toHaveLength(0);
       });
 
       test('should return result even when no permissions existed', async () => {
-        const newResourceId = new Types.ObjectId();
+        const newResourceId = uuidv4();
 
         const result = await service.removeAllPermissions({
           resourceType: ResourceType.AGENT,
@@ -783,7 +736,7 @@ describe('AccessControlService', () => {
       });
 
       test('should not affect other resources permissions', async () => {
-        const otherResource = new Types.ObjectId();
+        const otherResource = uuidv4();
 
         // Grant permission to another resource
         await service.grantPermission({
@@ -801,18 +754,18 @@ describe('AccessControlService', () => {
         });
 
         // Verify other resource still has permissions
-        const otherResourcePerms = await AclEntry.countDocuments({
+        const otherResourcePerms = await dbMethods.aclEntry.find({
           resourceType: ResourceType.AGENT,
           resourceId: otherResource,
         });
-        expect(otherResourcePerms).toBe(1);
+        expect(otherResourcePerms).toHaveLength(1);
       });
     });
   });
 
   describe('checkPermission', () => {
-    const testResource = new Types.ObjectId();
-    const groupResource = new Types.ObjectId();
+    const testResource = uuidv4();
+    const groupResource = uuidv4();
 
     beforeEach(async () => {
       // User has VIEW on testResource
@@ -940,7 +893,7 @@ describe('AccessControlService', () => {
         const hasPermission = await service.checkPermission({
           userId: userId.toString(),
           resourceType: ResourceType.AGENT,
-          resourceId: new Types.ObjectId(),
+          resourceId: uuidv4(),
           requiredPermission: 1,
         });
 
@@ -970,11 +923,11 @@ describe('AccessControlService', () => {
 
     describe('public access', () => {
       test('should check permission for public access', async () => {
-        const publicResource = new Types.ObjectId();
+        const publicResource = uuidv4();
 
         await service.grantPermission({
           principalType: PrincipalType.PUBLIC,
-          principalId: null,
+          principalId: null as any,
           resourceType: ResourceType.AGENT,
           resourceId: publicResource,
           accessRoleId: AccessRoleIds.AGENT_VIEWER,

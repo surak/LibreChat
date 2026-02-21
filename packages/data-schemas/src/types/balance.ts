@@ -1,7 +1,6 @@
-import { Document, Types } from 'mongoose';
-
-export interface IBalance extends Document {
-  user: Types.ObjectId;
+export interface IBalance {
+  _id: string;
+  user: string;
   tokenCredits: number;
   // Automatic refill settings
   autoRefillEnabled: boolean;

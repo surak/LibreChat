@@ -1,4 +1,3 @@
-import { Document, Types } from 'mongoose';
 import type { GraphEdge, AgentToolOptions } from 'librechat-data-provider';
 
 export interface ISupportContact {
@@ -6,7 +5,8 @@ export interface ISupportContact {
   email?: string;
 }
 
-export interface IAgent extends Omit<Document, 'model'> {
+export interface IAgent {
+  _id: string;
   id: string;
   name?: string;
   description?: string;
@@ -24,7 +24,7 @@ export interface IAgent extends Omit<Document, 'model'> {
   tools?: string[];
   tool_kwargs?: Array<unknown>;
   actions?: string[];
-  author: Types.ObjectId;
+  author: string;
   authorName?: string;
   hide_sequential_outputs?: boolean;
   end_after_tools?: boolean;
@@ -35,7 +35,7 @@ export interface IAgent extends Omit<Document, 'model'> {
   isCollaborative?: boolean;
   conversation_starters?: string[];
   tool_resources?: unknown;
-  projectIds?: Types.ObjectId[];
+  projectIds?: string[];
   versions?: Omit<IAgent, 'versions'>[];
   category: string;
   support_contact?: ISupportContact;

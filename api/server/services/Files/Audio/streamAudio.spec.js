@@ -1,7 +1,5 @@
 const { createChunkProcessor, splitTextIntoChunks } = require('./streamAudio');
 
-jest.mock('keyv');
-
 const globalCache = {};
 jest.mock('~/models/Message', () => {
   return {
@@ -10,48 +8,16 @@ jest.mock('~/models/Message', () => {
     }),
   };
 });
+
 jest.mock('~/cache/getLogStores', () => {
   return jest.fn().mockImplementation(() => {
-    const EventEmitter = require('events');
-    const { CacheKeys } = require('librechat-data-provider');
-
-    class KeyvMongo extends EventEmitter {
-      constructor(url = 'mongodb://127.0.0.1:27017', options) {
-        super();
-        this.ttlSupport = false;
-        url = url ?? {};
-        if (typeof url === 'string') {
-          url = { url };
-        }
-        if (url.uri) {
-          url = { url: url.uri, ...url };
-        }
-        this.opts = {
-          url,
-          collection: 'keyv',
-          ...url,
-          ...options,
-        };
-      }
-
-      get = async (key) => {
-        return new Promise((resolve) => {
-          resolve(globalCache[key] || null);
-        });
-      };
-
-      set = async (key, value) => {
-        return new Promise((resolve) => {
-          globalCache[key] = value;
-          resolve(true);
-        });
-      };
-    }
-
-    return new KeyvMongo('', {
-      namespace: CacheKeys.MESSAGES,
-      ttl: 0,
-    });
+    return {
+      get: async (key) => globalCache[key] || null,
+      set: async (key, value) => {
+        globalCache[key] = value;
+        return true;
+      },
+    };
   });
 });
 
@@ -61,6 +27,7 @@ describe('processChunks', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    for (const key in globalCache) delete globalCache[key];
     mockMessageCache = {
       get: jest.fn(),
       set: jest.fn(),

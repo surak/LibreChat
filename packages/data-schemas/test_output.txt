@@ -1,0 +1,10 @@
+
+> @librechat/data-schemas@0.0.35 test
+> jest --coverage --watch src/methods/user.spec.ts
+
+No tests found, exiting with code 0
+----------|---------|----------|---------|---------|-------------------
+File      | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+----------|---------|----------|---------|---------|-------------------
+All files |       0 |        0 |       0 |       0 |
+----------|---------|----------|---------|---------|-------------------

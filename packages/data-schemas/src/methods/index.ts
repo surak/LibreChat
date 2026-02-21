@@ -2,6 +2,15 @@ import { createSessionMethods, DEFAULT_REFRESH_TOKEN_EXPIRY, type SessionMethods
 import { createTokenMethods, type TokenMethods } from './token';
 import { createRoleMethods, type RoleMethods } from './role';
 import { createUserMethods, DEFAULT_SESSION_EXPIRY, type UserMethods } from './user';
+import { createBalanceMethods, type BalanceMethods } from './balance';
+import { createTransactionMethods, type TransactionMethods } from './transaction';
+import { createActionMethods, type ActionMethods } from './action';
+import { createAssistantMethods, type AssistantMethods } from './assistant';
+import { createBannerMethods, type BannerMethods } from './banner';
+import { createPromptMethods, type PromptMethods } from './prompt';
+import { createProjectMethods, type ProjectMethods } from './project';
+import { createConversationTagMethods, type ConversationTagMethods } from './conversationTag';
+import { createAgentMethods, type AgentMethods } from './agent';
 
 export { DEFAULT_REFRESH_TOKEN_EXPIRY, DEFAULT_SESSION_EXPIRY };
 import { createKeyMethods, type KeyMethods } from './key';
@@ -36,29 +45,46 @@ export type AllMethods = UserMethods &
   AclEntryMethods &
   ShareMethods &
   AccessRoleMethods &
+  BalanceMethods &
+  TransactionMethods &
+  ActionMethods &
+  AssistantMethods &
+  BannerMethods &
+  PromptMethods &
+  ProjectMethods &
+  ConversationTagMethods &
+  AgentMethods &
   PluginAuthMethods;
 
 /**
  * Creates all database methods for all collections
- * @param mongoose - Mongoose instance
  */
-export function createMethods(mongoose: typeof import('mongoose')): AllMethods {
+export function createMethods(): AllMethods {
   return {
-    ...createUserMethods(mongoose),
-    ...createSessionMethods(mongoose),
-    ...createTokenMethods(mongoose),
-    ...createRoleMethods(mongoose),
-    ...createKeyMethods(mongoose),
-    ...createFileMethods(mongoose),
-    ...createMemoryMethods(mongoose),
-    ...createAgentCategoryMethods(mongoose),
-    ...createAgentApiKeyMethods(mongoose),
-    ...createMCPServerMethods(mongoose),
-    ...createAccessRoleMethods(mongoose),
-    ...createUserGroupMethods(mongoose),
-    ...createAclEntryMethods(mongoose),
-    ...createShareMethods(mongoose),
-    ...createPluginAuthMethods(mongoose),
+    ...createUserMethods(),
+    ...createSessionMethods(),
+    ...createTokenMethods(),
+    ...createRoleMethods(),
+    ...createKeyMethods(),
+    ...createFileMethods(),
+    ...createMemoryMethods(),
+    ...createAgentCategoryMethods(),
+    ...createAgentApiKeyMethods(),
+    ...createMCPServerMethods(),
+    ...createAccessRoleMethods(),
+    ...createUserGroupMethods(),
+    ...createAclEntryMethods(),
+    ...createShareMethods(),
+    ...createBalanceMethods(),
+    ...createTransactionMethods(),
+    ...createActionMethods(),
+    ...createAssistantMethods(),
+    ...createBannerMethods(),
+    ...createPromptMethods(),
+    ...createProjectMethods(),
+    ...createConversationTagMethods(),
+    ...createAgentMethods(),
+    ...createPluginAuthMethods(),
   };
 }
 
@@ -77,5 +103,14 @@ export type {
   AclEntryMethods,
   ShareMethods,
   AccessRoleMethods,
+  BalanceMethods,
+  TransactionMethods,
+  ActionMethods,
+  AssistantMethods,
+  BannerMethods,
+  PromptMethods,
+  ProjectMethods,
+  ConversationTagMethods,
+  AgentMethods,
   PluginAuthMethods,
 };

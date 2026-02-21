@@ -1,9 +1,7 @@
 const express = require('express');
 const request = require('supertest');
-const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const { createMethods } = require('@librechat/data-schemas');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 const { ResourceType, PermissionBits } = require('librechat-data-provider');
 const { createAgent } = require('~/models/Agent');
 
@@ -42,54 +40,29 @@ const { findMCPServerByObjectId } = require('~/models');
  */
 describe('Access Permissions Routes - Security Tests (SBA-ADV-20251203-02)', () => {
   let app;
-  let mongoServer;
   let authorId;
   let attackerId;
   let agentId;
   let methods;
-  let User;
-  let modelsToCleanup = [];
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
-
-    // Initialize models
-    const { createModels } = require('@librechat/data-schemas');
-    const models = createModels(mongoose);
-    modelsToCleanup = Object.keys(models);
-    Object.assign(mongoose.models, models);
-
-    methods = createMethods(mongoose);
-    User = models.User;
-
+    methods = createMethods();
     await methods.seedDefaultRoles();
   });
 
-  afterAll(async () => {
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      await collections[key].deleteMany({});
-    }
-    for (const modelName of modelsToCleanup) {
-      delete mongoose.models[modelName];
-    }
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
   beforeEach(async () => {
-    // Clear all collections
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      await collections[key].deleteMany({});
+    // Clear all stores
+    const modelNames = ['user', 'agent', 'aclEntry'];
+    for (const name of modelNames) {
+        if (methods[name] && methods[name]._store) {
+            methods[name]._store.clear();
+        }
     }
     await methods.seedDefaultRoles();
 
     // Create author (owner of the agent)
-    authorId = new mongoose.Types.ObjectId().toString();
-    await User.create({
+    authorId = uuidv4();
+    await methods.user.create({
       _id: authorId,
       name: 'Agent Owner',
       email: 'owner@example.com',
@@ -98,8 +71,8 @@ describe('Access Permissions Routes - Security Tests (SBA-ADV-20251203-02)', () 
     });
 
     // Create attacker (should not have access)
-    attackerId = new mongoose.Types.ObjectId().toString();
-    await User.create({
+    attackerId = uuidv4();
+    await methods.user.create({
       _id: attackerId,
       name: 'Attacker',
       email: 'attacker@example.com',
@@ -186,15 +159,6 @@ describe('Access Permissions Routes - Security Tests (SBA-ADV-20251203-02)', () 
 
   describe('GET /permissions/:resourceType/:resourceId', () => {
     it('should deny permission query for user without access (main vulnerability test)', async () => {
-      /**
-       * SECURITY TEST: This is the core test for SBA-ADV-20251203-02
-       *
-       * Before the fix, any authenticated user could query permissions for
-       * any agent by just knowing the agent ID, exposing information about
-       * who has access to private agents.
-       *
-       * After the fix, users must have SHARE permission to view permissions.
-       */
       const response = await request(app)
         .get(`/permissions/agent/${agentId}`)
         .set('Content-Type', 'application/json');

@@ -76,30 +76,18 @@ jest.mock('~/config', () => ({
 
 const express = require('express');
 const request = require('supertest');
-const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const { hashToken, getRandomValues, createModels } = require('@librechat/data-schemas');
+const { hashToken, getRandomValues, createMethods } = require('@librechat/data-schemas');
 const {
   SystemRoles,
   ResourceType,
   AccessRoleIds,
   PrincipalType,
-  PrincipalModel,
   PermissionBits,
   EModelEndpoint,
 } = require('librechat-data-provider');
 
-/** @type {import('mongoose').Model} */
-let Agent;
-/** @type {import('mongoose').Model} */
-let AgentApiKey;
-/** @type {import('mongoose').Model} */
-let User;
-/** @type {import('mongoose').Model} */
-let AclEntry;
-/** @type {import('mongoose').Model} */
-let AccessRole;
+let methods;
 
 /**
  * Parse SSE stream into events
@@ -142,7 +130,6 @@ function parseSSEEvents(text) {
 
 /**
  * Valid streaming event types per Open Responses specification
- * @see https://github.com/openresponses/openresponses/blob/main/src/lib/sse-parser.ts
  */
 const VALID_STREAMING_EVENT_TYPES = new Set([
   // Standard Open Responses events
@@ -170,8 +157,7 @@ const VALID_STREAMING_EVENT_TYPES = new Set([
   'response.reasoning_summary_text.done',
   'response.output_text.annotation.added',
   'error',
-  // LibreChat extension events (prefixed per Open Responses spec)
-  // @see https://openresponses.org/specification#extending-streaming-events
+  // LibreChat extension events
   'librechat:attachment',
 ]);
 
@@ -326,7 +312,7 @@ async function createTestAgent(overrides = {}) {
     instructions: 'You are a helpful assistant. Be concise.',
     provider: EModelEndpoint.anthropic,
     model: 'claude-sonnet-4-5-20250929',
-    author: new mongoose.Types.ObjectId(),
+    author: uuidv4(),
     tools: [],
     model_parameters: {},
     ...overrides,
@@ -347,7 +333,7 @@ async function createTestAgent(overrides = {}) {
     category: 'general',
   };
 
-  return (await Agent.create(initialAgentData)).toObject();
+  return await methods.agent.create(initialAgentData);
 }
 
 /**
@@ -375,12 +361,11 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
   // Increase timeout for real API calls
   jest.setTimeout(120000);
 
-  let mongoServer;
   let app;
   let testAgent;
   let thinkingAgent;
   let testUser;
-  let testApiKey; // The raw API key for Authorization header
+  let testApiKey;
 
   afterAll(() => {
     process.env.CREDS_KEY = originalEnv.CREDS_KEY;
@@ -388,22 +373,7 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
   });
 
   beforeAll(async () => {
-    // Start MongoDB Memory Server
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-
-    // Connect to MongoDB
-    await mongoose.connect(mongoUri);
-
-    // Register all models
-    const models = createModels(mongoose);
-
-    // Get models
-    Agent = models.Agent;
-    AgentApiKey = models.AgentApiKey;
-    User = models.User;
-    AclEntry = models.AclEntry;
-    AccessRole = models.AccessRole;
+    methods = createMethods();
 
     // Create minimal Express app with just the responses routes
     app = express();
@@ -414,7 +384,8 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
     app.use('/api/agents/v1/responses', responsesRoutes);
 
     // Create test user
-    testUser = await User.create({
+    testUser = await methods.user.create({
+      _id: uuidv4(),
       name: 'Test API User',
       username: 'testapiuser',
       email: 'testapiuser@test.com',
@@ -423,53 +394,15 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       role: SystemRoles.ADMIN,
     });
 
-    // Create REMOTE_AGENT access roles (if they don't exist)
-    const existingRoles = await AccessRole.find({
-      accessRoleId: {
-        $in: [
-          AccessRoleIds.REMOTE_AGENT_VIEWER,
-          AccessRoleIds.REMOTE_AGENT_EDITOR,
-          AccessRoleIds.REMOTE_AGENT_OWNER,
-        ],
-      },
-    });
-
-    if (existingRoles.length === 0) {
-      await AccessRole.create([
-        {
-          accessRoleId: AccessRoleIds.REMOTE_AGENT_VIEWER,
-          name: 'API Viewer',
-          description: 'Can query the agent via API',
-          resourceType: ResourceType.REMOTE_AGENT,
-          permBits: PermissionBits.VIEW,
-        },
-        {
-          accessRoleId: AccessRoleIds.REMOTE_AGENT_EDITOR,
-          name: 'API Editor',
-          description: 'Can view and modify the agent via API',
-          resourceType: ResourceType.REMOTE_AGENT,
-          permBits: PermissionBits.VIEW | PermissionBits.EDIT,
-        },
-        {
-          accessRoleId: AccessRoleIds.REMOTE_AGENT_OWNER,
-          name: 'API Owner',
-          description: 'Full API access + can grant remote access to others',
-          resourceType: ResourceType.REMOTE_AGENT,
-          permBits:
-            PermissionBits.VIEW |
-            PermissionBits.EDIT |
-            PermissionBits.DELETE |
-            PermissionBits.SHARE,
-        },
-      ]);
-    }
+    // Seed default roles
+    await methods.seedDefaultRoles();
 
     // Generate and create an API key for the test user
     const rawKey = `sk-${await getRandomValues(32)}`;
     const keyHash = await hashToken(rawKey);
     const keyPrefix = rawKey.substring(0, 8);
 
-    await AgentApiKey.create({
+    await methods.agentApiKey.create({
       userId: testUser._id,
       name: 'Test API Key',
       keyHash,
@@ -483,10 +416,9 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
     thinkingAgent = await createThinkingAgent({ author: testUser._id });
 
     // Grant REMOTE_AGENT permissions for the test agents
-    await AclEntry.create([
+    await methods.aclEntry.create([
       {
         principalType: PrincipalType.USER,
-        principalModel: PrincipalModel.USER,
         principalId: testUser._id,
         resourceType: ResourceType.REMOTE_AGENT,
         resourceId: testAgent._id,
@@ -496,7 +428,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       },
       {
         principalType: PrincipalType.USER,
-        principalModel: PrincipalModel.USER,
         principalId: testUser._id,
         resourceType: ResourceType.REMOTE_AGENT,
         resourceId: thinkingAgent._id,
@@ -506,20 +437,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       },
     ]);
   }, 60000);
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
-  beforeEach(async () => {
-    // Clean up any test data between tests if needed
-  });
-
-  /* ===========================================================================
-   * COMPLIANCE TESTS
-   * Based on: https://github.com/openresponses/openresponses/blob/main/src/lib/compliance-tests.ts
-   * =========================================================================== */
 
   /** Helper to add auth header to requests */
   const authRequest = () => ({
@@ -546,7 +463,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
         expect(response.status).toBe(200);
         expect(response.body).toBeDefined();
 
-        // Validate ResponseResource schema
         const body = response.body;
         expect(body.id).toMatch(/^resp_/);
         expect(body.object).toBe('response');
@@ -554,11 +470,9 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
         expect(body.status).toBe('completed');
         expect(body.model).toBe(testAgent.id);
 
-        // Validate output
         expect(Array.isArray(body.output)).toBe(true);
         expect(body.output.length).toBeGreaterThan(0);
 
-        // Should have at least one message item
         const messageItem = body.output.find((item) => item.type === 'message');
         expect(messageItem).toBeDefined();
         expect(messageItem.role).toBe('assistant');
@@ -599,39 +513,25 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
         const events = parseSSEEvents(response.body);
         expect(events.length).toBeGreaterThan(0);
 
-        // Validate all streaming events against Open Responses spec
-        // This catches issues like:
-        // - Invalid event types (e.g., response.reasoning_text.delta instead of response.reasoning.delta)
-        // - Missing required fields (e.g., logprobs on output_text events)
         const validationErrors = validateAllStreamingEvents(events);
         if (validationErrors.length > 0) {
           console.error('Streaming event validation errors:', validationErrors);
         }
         expect(validationErrors).toEqual([]);
 
-        // Validate streaming event types
         const eventTypes = events.map((e) => e.event);
-
-        // Should have response.created first (per Open Responses spec)
         expect(eventTypes).toContain('response.created');
-
-        // Should have response.in_progress
         expect(eventTypes).toContain('response.in_progress');
 
-        // response.created should come before response.in_progress
         const createdIdx = eventTypes.indexOf('response.created');
         const inProgressIdx = eventTypes.indexOf('response.in_progress');
         expect(createdIdx).toBeLessThan(inProgressIdx);
 
-        // Should have response.completed or response.failed
         expect(eventTypes.some((t) => t === 'response.completed' || t === 'response.failed')).toBe(
           true,
         );
-
-        // Should have [DONE]
         expect(eventTypes).toContain('done');
 
-        // Validate response.completed has full response
         const completedEvent = events.find((e) => e.event === 'response.completed');
         if (completedEvent) {
           expect(completedEvent.data.response).toBeDefined();
@@ -669,7 +569,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
 
         const events = parseSSEEvents(response.body);
 
-        // Check all event types are valid
         for (const event of events) {
           if (event.data && typeof event.data === 'object' && event.data.type) {
             expect(VALID_STREAMING_EVENT_TYPES.has(event.data.type)).toBe(true);
@@ -706,7 +605,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
 
         const events = parseSSEEvents(response.body);
 
-        // Find output_text delta/done events and verify logprobs
         const textDeltaEvents = events.filter(
           (e) => e.data && e.data.type === 'response.output_text.delta',
         );
@@ -714,15 +612,12 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
           (e) => e.data && e.data.type === 'response.output_text.done',
         );
 
-        // Should have at least one output_text event
         expect(textDeltaEvents.length + textDoneEvents.length).toBeGreaterThan(0);
 
-        // All output_text.delta events must have logprobs array
         for (const event of textDeltaEvents) {
           expect(Array.isArray(event.data.logprobs)).toBe(true);
         }
 
-        // All output_text.done events must have logprobs array
         for (const event of textDoneEvents) {
           expect(Array.isArray(event.data.logprobs)).toBe(true);
         }
@@ -731,10 +626,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
 
     describe('system-prompt', () => {
       it('should handle developer role messages in input (as system)', async () => {
-        // Note: For Anthropic, system messages must be first and there can only be one.
-        // Since the agent already has instructions, we use 'developer' role which
-        // gets merged into the system prompt, or we test with a simple user message
-        // that instructs the behavior.
         const response = await authRequest()
           .post('/api/agents/v1/responses')
           .send({
@@ -752,7 +643,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
         expect(response.body.status).toBe('completed');
         expect(response.body.output.length).toBeGreaterThan(0);
 
-        // The response should reflect the pirate persona
         const messageItem = response.body.output.find((item) => item.type === 'message');
         expect(messageItem).toBeDefined();
         expect(messageItem.content.length).toBeGreaterThan(0);
@@ -787,7 +677,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
         expect(response.status).toBe(200);
         expect(response.body.status).toBe('completed');
 
-        // The response should reference "Alice"
         const messageItem = response.body.output.find((item) => item.type === 'message');
         expect(messageItem).toBeDefined();
 
@@ -796,9 +685,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
         expect(textContent.text.toLowerCase()).toContain('alice');
       });
     });
-
-    // Note: tool-calling test requires tool setup which may need additional configuration
-    // Note: image-input test requires vision-capable model
 
     describe('string-input', () => {
       it('should accept simple string input', async () => {
@@ -813,11 +699,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       });
     });
   });
-
-  /* ===========================================================================
-   * EXTENDED THINKING TESTS
-   * Tests reasoning output from Claude models with extended thinking enabled
-   * =========================================================================== */
 
   describe('Extended Thinking', () => {
     it('should return reasoning output when thinking is enabled', async () => {
@@ -837,19 +718,13 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('completed');
 
-      // Check for reasoning item in output
       const reasoningItem = response.body.output.find((item) => item.type === 'reasoning');
-      // If reasoning is present, validate its structure per Open Responses spec
-      // Note: reasoning items do NOT have a 'status' field per the spec
-      // @see https://github.com/openresponses/openresponses/blob/main/src/generated/kubb/zod/reasoningBodySchema.ts
       if (reasoningItem) {
         expect(reasoningItem).toHaveProperty('id');
         expect(reasoningItem).toHaveProperty('type', 'reasoning');
-        // Note: 'status' is NOT a field on reasoning items per the spec
         expect(reasoningItem).toHaveProperty('summary');
         expect(Array.isArray(reasoningItem.summary)).toBe(true);
 
-        // Validate content items
         if (reasoningItem.content && reasoningItem.content.length > 0) {
           const reasoningContent = reasoningItem.content[0];
           expect(reasoningContent).toHaveProperty('type', 'reasoning_text');
@@ -890,15 +765,12 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
 
       const events = parseSSEEvents(response.body);
 
-      // Validate all events against Open Responses spec
       const validationErrors = validateAllStreamingEvents(events);
       if (validationErrors.length > 0) {
         console.error('Reasoning streaming event validation errors:', validationErrors);
       }
       expect(validationErrors).toEqual([]);
 
-      // Check for reasoning-related events using correct event types per Open Responses spec
-      // Note: The spec uses response.reasoning.delta NOT response.reasoning_text.delta
       const reasoningDeltaEvents = events.filter(
         (e) => e.data && e.data.type === 'response.reasoning.delta',
       );
@@ -906,7 +778,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
         (e) => e.data && e.data.type === 'response.reasoning.done',
       );
 
-      // If reasoning events are present, validate their structure
       if (reasoningDeltaEvents.length > 0) {
         const deltaEvent = reasoningDeltaEvents[0];
         expect(deltaEvent.data).toHaveProperty('item_id');
@@ -925,16 +796,10 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
         expect(doneEvent.data).toHaveProperty('sequence_number');
       }
 
-      // Verify stream completed properly
       const eventTypes = events.map((e) => e.event);
       expect(eventTypes).toContain('response.completed');
     });
   });
-
-  /* ===========================================================================
-   * SCHEMA VALIDATION TESTS
-   * Verify response schema compliance
-   * =========================================================================== */
 
   describe('Schema Validation', () => {
     it('should include all required fields in response', async () => {
@@ -946,7 +811,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       expect(response.status).toBe(200);
       const body = response.body;
 
-      // Required fields per Open Responses spec
       expect(body).toHaveProperty('id');
       expect(body).toHaveProperty('object', 'response');
       expect(body).toHaveProperty('created_at');
@@ -969,10 +833,8 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       expect(body).toHaveProperty('service_tier');
       expect(body).toHaveProperty('metadata');
 
-      // top_logprobs must be a number (not null)
       expect(typeof body.top_logprobs).toBe('number');
 
-      // Usage must have required detail fields
       expect(body).toHaveProperty('usage');
       expect(body.usage).toHaveProperty('input_tokens');
       expect(body.usage).toHaveProperty('output_tokens');
@@ -994,7 +856,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       const messageItem = response.body.output.find((item) => item.type === 'message');
       expect(messageItem).toBeDefined();
 
-      // Message item required fields
       expect(messageItem).toHaveProperty('type', 'message');
       expect(messageItem).toHaveProperty('id');
       expect(messageItem).toHaveProperty('status');
@@ -1002,7 +863,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       expect(messageItem).toHaveProperty('content');
       expect(Array.isArray(messageItem.content)).toBe(true);
 
-      // Content part structure - verify all required fields
       if (messageItem.content.length > 0) {
         const textContent = messageItem.content.find((c) => c.type === 'output_text');
         if (textContent) {
@@ -1015,7 +875,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
         }
       }
 
-      // Verify reasoning item has required summary field
       const reasoningItem = response.body.output.find((item) => item.type === 'reasoning');
       if (reasoningItem) {
         expect(reasoningItem).toHaveProperty('type', 'reasoning');
@@ -1026,14 +885,8 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
     });
   });
 
-  /* ===========================================================================
-   * RESPONSE STORAGE TESTS
-   * Tests for store: true and GET /v1/responses/:id
-   * =========================================================================== */
-
   describe('Response Storage', () => {
     it('should store response when store: true and retrieve it', async () => {
-      // Create a stored response
       const createResponse = await authRequest().post('/api/agents/v1/responses').send({
         model: testAgent.id,
         input: 'Remember this: The answer is 42.',
@@ -1046,14 +899,10 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       const responseId = createResponse.body.id;
       expect(responseId).toMatch(/^resp_/);
 
-      // Small delay to ensure database write completes
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Retrieve the stored response
       const getResponseResult = await authRequest().get(`/api/agents/v1/responses/${responseId}`);
 
-      // Note: The response might be stored under conversationId, not responseId
-      // If we get 404, that's expected behavior for now since we store by conversationId
       if (getResponseResult.status === 200) {
         expect(getResponseResult.body.object).toBe('response');
         expect(getResponseResult.body.status).toBe('completed');
@@ -1063,15 +912,10 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
 
     it('should return 404 for non-existent response', async () => {
       const response = await authRequest().get('/api/agents/v1/responses/resp_nonexistent123');
-
       expect(response.status).toBe(404);
       expect(response.body.error).toBeDefined();
     });
   });
-
-  /* ===========================================================================
-   * ERROR HANDLING TESTS
-   * =========================================================================== */
 
   describe('Error Handling', () => {
     it('should return error for missing model', async () => {
@@ -1103,10 +947,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
     });
   });
 
-  /* ===========================================================================
-   * MODELS ENDPOINT TESTS
-   * =========================================================================== */
-
   describe('GET /v1/responses/models', () => {
     it('should list available agents as models', async () => {
       const response = await authRequest().get('/api/agents/v1/responses/models');
@@ -1115,7 +955,6 @@ describeWithApiKey('Open Responses API Integration Tests', () => {
       expect(response.body.object).toBe('list');
       expect(Array.isArray(response.body.data)).toBe(true);
 
-      // Should include our test agent
       const foundAgent = response.body.data.find((m) => m.id === testAgent.id);
       expect(foundAgent).toBeDefined();
       expect(foundAgent.object).toBe('model');

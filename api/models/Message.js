@@ -1,7 +1,6 @@
 const { z } = require('zod');
 const { logger } = require('@librechat/data-schemas');
 const { createTempChatExpirationDate } = require('@librechat/api');
-const { Message } = require('~/db/models');
 
 const idSchema = z.string().uuid();
 
@@ -70,60 +69,17 @@ async function saveMessage(req, params, metadata) {
     return;
   }
 
-  try {
-    const messageId = params.newMessageId || params.messageId;
-    const update = {
-      ...params,
-      user: req.user.id,
-      messageId,
-      createdAt: params.createdAt || new Date(),
-      updatedAt: new Date(),
-    };
+  const messageId = params.newMessageId || params.messageId;
+  const update = {
+    ...params,
+    user: req.user.id,
+    messageId,
+    createdAt: params.createdAt || new Date(),
+    updatedAt: new Date(),
+  };
 
-    messageStore.set(messageId, update);
-    return update;
-  } catch (err) {
-    logger.error('Error saving message:', err);
-    logger.info(`---\`saveMessage\` context: ${metadata?.context}`);
-
-    // Check if this is a duplicate key error (MongoDB error code 11000)
-    if (err.code === 11000 && err.message.includes('duplicate key error')) {
-      // Log the duplicate key error but don't crash the application
-      logger.warn(`Duplicate messageId detected: ${params.messageId}. Continuing execution.`);
-
-      try {
-        // Try to find the existing message with this ID
-        const existingMessage = await Message.findOne({
-          messageId: params.messageId,
-          user: req.user.id,
-        });
-
-        // If we found it, return it
-        if (existingMessage) {
-          return existingMessage.toObject();
-        }
-
-        // If we can't find it (unlikely but possible in race conditions)
-        return {
-          ...params,
-          messageId: params.messageId,
-          user: req.user.id,
-        };
-      } catch (findError) {
-        // If the findOne also fails, log it but don't crash
-        logger.warn(
-          `Could not retrieve existing message with ID ${params.messageId}: ${findError.message}`,
-        );
-        return {
-          ...params,
-          messageId: params.messageId,
-          user: req.user.id,
-        };
-      }
-    }
-
-    throw err; // Re-throw other errors
-  }
+  messageStore.set(messageId, update);
+  return update;
 }
 
 /**
@@ -338,8 +294,8 @@ async function getMessage({ user, messageId }) {
  *
  * @async
  * @function deleteMessages
- * @param {import('mongoose').FilterQuery<import('mongoose').Document>} filter - The filter criteria to find messages to delete.
- * @returns {Promise<import('mongoose').DeleteResult>} The metadata with count of deleted messages.
+ * @param {Object} filter - The filter criteria to find messages to delete.
+ * @returns {Promise<Object>} The metadata with count of deleted messages.
  * @throws {Error} If there is an error in deleting messages.
  */
 async function deleteMessages(filter) {

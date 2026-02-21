@@ -1,5 +1,5 @@
 const { logger } = require('@librechat/data-schemas');
-const { Banner } = require('~/db/models');
+const { banner: Banner } = require('./index');
 
 /**
  * Retrieves the current active banner.
@@ -12,7 +12,7 @@ const getBanner = async (user) => {
       displayFrom: { $lte: now },
       $or: [{ displayTo: { $gte: now } }, { displayTo: null }],
       type: 'banner',
-    }).lean();
+    });
 
     if (!banner || banner.isPublic || user) {
       return banner;

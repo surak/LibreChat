@@ -1,11 +1,10 @@
-import type { Document, Types } from 'mongoose';
-
 // @ts-ignore
-export interface IConversation extends Document {
+export interface IConversation {
+  _id: string;
   conversationId: string;
   title?: string;
   user?: string;
-  messages?: Types.ObjectId[];
+  messages?: string[];
   // Fields provided by conversationPreset (adjust types as needed)
   endpoint?: string;
   endpointType?: string;

@@ -1,25 +1,29 @@
-import type { QueryOptions } from 'mongoose';
 import { IToken, TokenCreateData, TokenQuery, TokenUpdateData, TokenDeleteResult } from '~/types';
 import logger from '~/config/winston';
+import { nanoid } from 'nanoid';
 
-// Factory function that takes mongoose instance and returns the methods
-export function createTokenMethods(mongoose: typeof import('mongoose')) {
+const tokenStore = new Map<string, IToken>();
+
+// Factory function that returns the methods
+export function createTokenMethods() {
   /**
    * Creates a new Token instance.
    */
   async function createToken(tokenData: TokenCreateData): Promise<IToken> {
     try {
-      const Token = mongoose.models.Token;
       const currentTime = new Date();
       const expiresAt = new Date(currentTime.getTime() + tokenData.expiresIn * 1000);
 
-      const newTokenData = {
+      const tokenId = nanoid();
+      const newToken: IToken = {
+        _id: tokenId,
         ...tokenData,
         createdAt: currentTime,
         expiresAt,
-      };
+      } as any;
 
-      return await Token.create(newTokenData);
+      tokenStore.set(tokenId, newToken);
+      return newToken;
     } catch (error) {
       logger.debug('An error occurred while creating token:', error);
       throw error;
@@ -34,14 +38,17 @@ export function createTokenMethods(mongoose: typeof import('mongoose')) {
     updateData: TokenUpdateData,
   ): Promise<IToken | null> {
     try {
-      const Token = mongoose.models.Token;
+      const tokenDoc = await findToken(query);
+      if (!tokenDoc) return null;
 
       const dataToUpdate = { ...updateData };
       if (updateData?.expiresIn !== undefined) {
         dataToUpdate.expiresAt = new Date(Date.now() + updateData.expiresIn * 1000);
       }
 
-      return await Token.findOneAndUpdate(query, dataToUpdate, { new: true });
+      const updated = { ...tokenDoc, ...dataToUpdate };
+      tokenStore.set(tokenDoc._id as string, updated);
+      return updated;
     } catch (error) {
       logger.debug('An error occurred while updating token:', error);
       throw error;
@@ -50,36 +57,28 @@ export function createTokenMethods(mongoose: typeof import('mongoose')) {
 
   /**
    * Deletes all Token documents that match the provided token, user ID, or email.
-   * Email is automatically normalized to lowercase for case-insensitive matching.
    */
   async function deleteTokens(query: TokenQuery): Promise<TokenDeleteResult> {
     try {
-      const Token = mongoose.models.Token;
-      const conditions = [];
+      const conditions: any[] = [];
+      if (query.userId !== undefined) conditions.push((t: any) => t.userId === query.userId);
+      if (query.token !== undefined) conditions.push((t: any) => t.token === query.token);
+      if (query.email !== undefined) conditions.push((t: any) => t.email === query.email?.trim().toLowerCase());
+      if (query.identifier !== undefined) conditions.push((t: any) => t.identifier === query.identifier);
 
-      if (query.userId !== undefined) {
-        conditions.push({ userId: query.userId });
-      }
-      if (query.token !== undefined) {
-        conditions.push({ token: query.token });
-      }
-      if (query.email !== undefined) {
-        conditions.push({ email: query.email.trim().toLowerCase() });
-      }
-      if (query.identifier !== undefined) {
-        conditions.push({ identifier: query.identifier });
-      }
-
-      /**
-       * If no conditions are specified, throw an error to prevent accidental deletion of all tokens
-       */
       if (conditions.length === 0) {
         throw new Error('At least one query parameter must be provided');
       }
 
-      return await Token.deleteMany({
-        $or: conditions,
-      });
+      let deletedCount = 0;
+      for (const [id, token] of tokenStore.entries()) {
+         if (conditions.some(cond => cond(token))) {
+            tokenStore.delete(id);
+            deletedCount++;
+         }
+      }
+
+      return { deletedCount } as any;
     } catch (error) {
       logger.debug('An error occurred while deleting tokens:', error);
       throw error;
@@ -88,29 +87,22 @@ export function createTokenMethods(mongoose: typeof import('mongoose')) {
 
   /**
    * Finds a Token document that matches the provided query.
-   * Email is automatically normalized to lowercase for case-insensitive matching.
    */
-  async function findToken(query: TokenQuery, options?: QueryOptions): Promise<IToken | null> {
+  async function findToken(query: TokenQuery, _options?: any): Promise<IToken | null> {
     try {
-      const Token = mongoose.models.Token;
-      const conditions = [];
+      const conditions: any[] = [];
+      if (query.userId) conditions.push((t: any) => t.userId === query.userId);
+      if (query.token) conditions.push((t: any) => t.token === query.token);
+      if (query.email) conditions.push((t: any) => t.email === query.email?.trim().toLowerCase());
+      if (query.identifier) conditions.push((t: any) => t.identifier === query.identifier);
 
-      if (query.userId) {
-        conditions.push({ userId: query.userId });
-      }
-      if (query.token) {
-        conditions.push({ token: query.token });
-      }
-      if (query.email) {
-        conditions.push({ email: query.email.trim().toLowerCase() });
-      }
-      if (query.identifier) {
-        conditions.push({ identifier: query.identifier });
+      for (const token of tokenStore.values()) {
+         if (conditions.every(cond => cond(token))) {
+            return token;
+         }
       }
 
-      const token = await Token.findOne({ $and: conditions }, null, options).lean();
-
-      return token as IToken | null;
+      return null;
     } catch (error) {
       logger.debug('An error occurred while finding token:', error);
       throw error;

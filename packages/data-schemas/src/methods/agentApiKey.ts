@@ -1,4 +1,3 @@
-import type { Types } from 'mongoose';
 import type {
   AgentApiKeyCreateResult,
   AgentApiKeyCreateData,
@@ -7,11 +6,15 @@ import type {
 } from '~/types';
 import { hashToken, getRandomValues } from '~/crypto';
 import logger from '~/config/winston';
+import { nanoid } from 'nanoid';
 
 const API_KEY_PREFIX = 'sk-';
 const API_KEY_LENGTH = 32;
 
-export function createAgentApiKeyMethods(mongoose: typeof import('mongoose')) {
+const agentApiKeyStore = new Map<string, IAgentApiKey>();
+
+// Factory function that returns the methods
+export function createAgentApiKeyMethods() {
   async function generateApiKey(): Promise<{ key: string; keyHash: string; keyPrefix: string }> {
     const randomPart = await getRandomValues(API_KEY_LENGTH);
     const key = `${API_KEY_PREFIX}${randomPart}`;
@@ -22,24 +25,29 @@ export function createAgentApiKeyMethods(mongoose: typeof import('mongoose')) {
 
   async function createAgentApiKey(data: AgentApiKeyCreateData): Promise<AgentApiKeyCreateResult> {
     try {
-      const AgentApiKey = mongoose.models.AgentApiKey;
       const { key, keyHash, keyPrefix } = await generateApiKey();
+      const id = nanoid();
+      const createdAt = new Date().toISOString();
 
-      const apiKeyDoc = await AgentApiKey.create({
+      const apiKeyDoc: IAgentApiKey = {
+        _id: id,
         userId: data.userId,
         name: data.name,
         keyHash,
         keyPrefix,
+        createdAt,
         expiresAt: data.expiresAt || undefined,
-      });
+      } as any;
+
+      agentApiKeyStore.set(id, apiKeyDoc);
 
       return {
-        id: apiKeyDoc._id.toString(),
+        id,
         name: apiKeyDoc.name,
         keyPrefix,
         key,
-        createdAt: apiKeyDoc.createdAt,
-        expiresAt: apiKeyDoc.expiresAt,
+        createdAt: apiKeyDoc.createdAt as any,
+        expiresAt: apiKeyDoc.expiresAt as any,
       };
     } catch (error) {
       logger.error('[createAgentApiKey] Error creating API key:', error);
@@ -49,12 +57,10 @@ export function createAgentApiKeyMethods(mongoose: typeof import('mongoose')) {
 
   async function validateAgentApiKey(
     apiKey: string,
-  ): Promise<{ userId: Types.ObjectId; keyId: Types.ObjectId } | null> {
+  ): Promise<{ userId: string; keyId: string } | null> {
     try {
-      const AgentApiKey = mongoose.models.AgentApiKey;
       const keyHash = await hashToken(apiKey);
-
-      const keyDoc = (await AgentApiKey.findOne({ keyHash }).lean()) as IAgentApiKey | null;
+      const keyDoc = Array.from(agentApiKeyStore.values()).find(k => k.keyHash === keyHash);
 
       if (!keyDoc) {
         return null;
@@ -64,11 +70,12 @@ export function createAgentApiKeyMethods(mongoose: typeof import('mongoose')) {
         return null;
       }
 
-      await AgentApiKey.updateOne({ _id: keyDoc._id }, { $set: { lastUsedAt: new Date() } });
+      keyDoc.lastUsedAt = new Date().toISOString() as any;
+      agentApiKeyStore.set(keyDoc._id as string, keyDoc);
 
       return {
-        userId: keyDoc.userId,
-        keyId: keyDoc._id as Types.ObjectId,
+        userId: keyDoc.userId as string,
+        keyId: keyDoc._id as string,
       };
     } catch (error) {
       logger.error('[validateAgentApiKey] Error validating API key:', error);
@@ -76,20 +83,19 @@ export function createAgentApiKeyMethods(mongoose: typeof import('mongoose')) {
     }
   }
 
-  async function listAgentApiKeys(userId: string | Types.ObjectId): Promise<AgentApiKeyListItem[]> {
+  async function listAgentApiKeys(userId: string): Promise<AgentApiKeyListItem[]> {
     try {
-      const AgentApiKey = mongoose.models.AgentApiKey;
-      const keys = (await AgentApiKey.find({ userId })
-        .sort({ createdAt: -1 })
-        .lean()) as unknown as IAgentApiKey[];
+      const keys = Array.from(agentApiKeyStore.values())
+        .filter(k => k.userId === userId)
+        .sort((a, b) => new Date(b.createdAt as any).getTime() - new Date(a.createdAt as any).getTime());
 
       return keys.map((key) => ({
-        id: (key._id as Types.ObjectId).toString(),
+        id: key._id as string,
         name: key.name,
         keyPrefix: key.keyPrefix,
-        lastUsedAt: key.lastUsedAt,
-        expiresAt: key.expiresAt,
-        createdAt: key.createdAt,
+        lastUsedAt: key.lastUsedAt as any,
+        expiresAt: key.expiresAt as any,
+        createdAt: key.createdAt as any,
       }));
     } catch (error) {
       logger.error('[listAgentApiKeys] Error listing API keys:', error);
@@ -98,24 +104,31 @@ export function createAgentApiKeyMethods(mongoose: typeof import('mongoose')) {
   }
 
   async function deleteAgentApiKey(
-    keyId: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    keyId: string,
+    userId: string,
   ): Promise<boolean> {
     try {
-      const AgentApiKey = mongoose.models.AgentApiKey;
-      const result = await AgentApiKey.deleteOne({ _id: keyId, userId });
-      return result.deletedCount > 0;
+      const key = agentApiKeyStore.get(keyId);
+      if (key && key.userId === userId) {
+        return agentApiKeyStore.delete(keyId);
+      }
+      return false;
     } catch (error) {
       logger.error('[deleteAgentApiKey] Error deleting API key:', error);
       throw error;
     }
   }
 
-  async function deleteAllAgentApiKeys(userId: string | Types.ObjectId): Promise<number> {
+  async function deleteAllAgentApiKeys(userId: string): Promise<number> {
     try {
-      const AgentApiKey = mongoose.models.AgentApiKey;
-      const result = await AgentApiKey.deleteMany({ userId });
-      return result.deletedCount;
+      let count = 0;
+      for (const [id, key] of agentApiKeyStore.entries()) {
+        if (key.userId === userId) {
+          agentApiKeyStore.delete(id);
+          count++;
+        }
+      }
+      return count;
     } catch (error) {
       logger.error('[deleteAllAgentApiKeys] Error deleting all API keys:', error);
       throw error;
@@ -123,27 +136,22 @@ export function createAgentApiKeyMethods(mongoose: typeof import('mongoose')) {
   }
 
   async function getAgentApiKeyById(
-    keyId: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    keyId: string,
+    userId: string,
   ): Promise<AgentApiKeyListItem | null> {
     try {
-      const AgentApiKey = mongoose.models.AgentApiKey;
-      const keyDoc = (await AgentApiKey.findOne({
-        _id: keyId,
-        userId,
-      }).lean()) as IAgentApiKey | null;
-
-      if (!keyDoc) {
+      const keyDoc = agentApiKeyStore.get(keyId);
+      if (!keyDoc || keyDoc.userId !== userId) {
         return null;
       }
 
       return {
-        id: (keyDoc._id as Types.ObjectId).toString(),
+        id: keyDoc._id as string,
         name: keyDoc.name,
         keyPrefix: keyDoc.keyPrefix,
-        lastUsedAt: keyDoc.lastUsedAt,
-        expiresAt: keyDoc.expiresAt,
-        createdAt: keyDoc.createdAt,
+        lastUsedAt: keyDoc.lastUsedAt as any,
+        expiresAt: keyDoc.expiresAt as any,
+        createdAt: keyDoc.createdAt as any,
       };
     } catch (error) {
       logger.error('[getAgentApiKeyById] Error getting API key:', error);

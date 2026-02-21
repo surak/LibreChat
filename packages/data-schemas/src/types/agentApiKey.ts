@@ -1,7 +1,6 @@
-import { Document, Types } from 'mongoose';
-
-export interface IAgentApiKey extends Document {
-  userId: Types.ObjectId;
+export interface IAgentApiKey {
+  _id: string;
+  userId: string;
   name: string;
   keyHash: string;
   keyPrefix: string;
@@ -12,7 +11,7 @@ export interface IAgentApiKey extends Document {
 }
 
 export interface AgentApiKeyCreateData {
-  userId: Types.ObjectId | string;
+  userId: string;
   name: string;
   expiresAt?: Date | null;
 }
@@ -36,7 +35,7 @@ export interface AgentApiKeyListItem {
 }
 
 export interface AgentApiKeyQuery {
-  userId?: Types.ObjectId | string;
+  userId?: string;
   keyPrefix?: string;
   id?: string;
 }

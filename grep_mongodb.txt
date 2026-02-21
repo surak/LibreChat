@@ -1,0 +1,30 @@
+./.github/CONTRIBUTING.md:    - Install [MongoDB Community Edition](https://www.mongodb.com/docs/manual/administration/install-community/), ensure that `mongosh` connects to your local instance.
+./packages/data-schemas/README.md:- [MongoDB Indexes](https://docs.mongodb.com/manual/indexes/)
+./packages/data-schemas/src/methods/userGroup.methods.spec.ts:import { MongoMemoryServer } from 'mongodb-memory-server';
+./packages/data-schemas/src/models/plugins/mongoMeili.spec.ts:import { MongoMemoryServer } from 'mongodb-memory-server';
+./packages/api/dist/index.js:        'mongodb',
+./packages/api/src/auth/domain.ts:    'mongodb',
+./packages/api/src/auth/domain.spec.ts:      expect(isSSRFTarget('mongodb')).toBe(true);
+./packages/api/src/mcp/registry/__tests__/ServerConfigsDB.test.ts:import { MongoMemoryServer } from 'mongodb-memory-server';
+./.env.example:# MONGO_URI=mongodb://127.0.0.1:27017/LibreChat
+./helm/librechat/values.yaml:mongodb:
+./helm/librechat/templates/configmap-env.yaml:  {{- if and (not (dig "configEnv" "MONGO_URI" "" .Values.librechat)) .Values.mongodb.enabled }}
+./helm/librechat/templates/configmap-env.yaml:  MONGO_URI: mongodb://{{ include "mongodb.service.nameOverride" .Subcharts.mongodb }}.{{ .Release.Namespace | lower }}.svc.cluster.local:27017/LibreChat
+./helm/librechat/Chart.yaml:  - name: mongodb
+./helm/librechat/Chart.yaml:    condition: mongodb.enabled
+./bun.lock:        "mongodb-memory-server": "^10.1.4",
+./bun.lock:        "mongodb": "^6.14.2",
+./bun.lock:        "mongodb-memory-server": "^10.1.4",
+./bun.lock:    "@mongodb-js/saslprep": ["@mongodb-js/saslprep@1.3.1", "", { "dependencies": { "sparse-bitfield": "^3.0.3" } }, "sha512-6nZrq5kfAz0POWyhljnbWQQJQ5uT8oE2ddX303q1uY0tWsivWKgBDXBBvuFPwOqRRalXJuVO9EjOdVtuhLX0zg=="],
+./bun.lock:    "mongodb": ["mongodb@6.14.2", "", { "dependencies": { "@mongodb-js/saslprep": "^1.1.9", "bson": "^6.10.3", "mongodb-connection-string-url": "^3.0.0" }, "peerDependencies": { "@aws-sdk/credential-providers": "^3.188.0", "@mongodb-js/zstd": "^1.1.0 || ^2.0.0", "gcp-metadata": "^5.2.0", "kerberos": "^2.0.1", "mongodb-client-encryption": ">=6.0.0 <7", "snappy": "^7.2.2", "socks": "^2.7.1" }, "optionalPeers": ["@mongodb-js/zstd", "kerberos", "mongodb-client-encryption", "snappy", "socks"] }, "sha512-kMEHNo0F3P6QKDq17zcDuPeaywK/YaJVCEQRzPF3TOM/Bl9MFg64YE5Tu7ifj37qZJMhwU1tl2Ioivws5gRG5Q=="],
+./bun.lock:    "mongodb-connection-string-url": ["mongodb-connection-string-url@3.0.2", "", { "dependencies": { "@types/whatwg-url": "^11.0.2", "whatwg-url": "^14.1.0 || ^13.0.0" } }, "sha512-rMO7CGo/9BFwyZABcKAWL8UJwH/Kc2x0g72uhDWzG48URRax5TCIcJ7Rc3RZqffZzO/Gwff/jyKwCU9TN8gehA=="],
+./bun.lock:    "mongodb-memory-server": ["mongodb-memory-server@10.1.4", "", { "dependencies": { "mongodb-memory-server-core": "10.1.4", "tslib": "^2.7.0" } }, "sha512-+oKQ/kc3CX+816oPFRtaF0CN4vNcGKNjpOQe4bHo/21A3pMD+lC7Xz1EX5HP7siCX4iCpVchDMmCOFXVQSGkUg=="],
+./bun.lock:    "mongodb-memory-server-core": ["mongodb-memory-server-core@10.1.4", "", { "dependencies": { "async-mutex": "^0.5.0", "camelcase": "^6.3.0", "debug": "^4.3.7", "find-cache-dir": "^3.3.2", "follow-redirects": "^1.15.9", "https-proxy-agent": "^7.0.5", "mongodb": "^6.9.0", "new-find-package-json": "^2.0.0", "semver": "^7.6.3", "tar-stream": "^3.1.7", "tslib": "^2.7.0", "yauzl": "^3.1.3" } }, "sha512-o8fgY7ZalEd8pGps43fFPr/hkQu1L8i6HFEGbsTfA2zDOW0TopgpswaBCqDr0qD7ptibyPfB5DmC+UlIxbThzA=="],
+./bun.lock:    "mongoose": ["mongoose@8.12.1", "", { "dependencies": { "bson": "^6.10.3", "kareem": "2.6.3", "mongodb": "~6.14.0", "mpath": "0.9.0", "mquery": "5.0.0", "ms": "2.1.3", "sift": "17.1.3" } }, "sha512-UW22y8QFVYmrb36hm8cGncfn4ARc/XsYWQwRTaj0gxtQk1rDuhzDO1eBantS+hTTatfAIS96LlRCJrcNHvW5+Q=="],
+./bun.lock:    "mongodb-connection-string-url/whatwg-url": ["whatwg-url@14.2.0", "", { "dependencies": { "tr46": "^5.1.0", "webidl-conversions": "^7.0.0" } }, "sha512-De72GdQZzNTUBBChsXueQUnPKDkg/5A5zp7pFDuQAj5UFoENpiACU0wlCvzpAGnTkj++ihpKwKyYewn/XNUbKw=="],
+./bun.lock:    "mongodb-memory-server-core/semver": ["semver@7.7.3", "", { "bin": "bin/semver.js" }, "sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q=="],
+./bun.lock:    "mongodb-connection-string-url/whatwg-url/tr46": ["tr46@5.1.1", "", { "dependencies": { "punycode": "^2.3.1" } }, "sha512-hdF5ZgjTqgAntKkklYw0R03MG2x/bSzTtkxmIRw/sTNV8YXsCJ1tfLAX23lhxhHJlEf3CRCOCGGWw3vI3GaSPw=="],
+./bun.lock:    "mongodb-connection-string-url/whatwg-url/webidl-conversions": ["webidl-conversions@7.0.0", "", {}, "sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g=="],
+./bun.lock:    "mongodb-connection-string-url/whatwg-url/tr46/punycode": ["punycode@2.3.1", "", {}, "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg=="],
+./api/test/.env.test.example:MONGO_URI=mongodb://127.0.0.1:27017/chatgpt-jest
+./grep_mongoose.txt:./bun.lock:    "mongoose": ["mongoose@8.12.1", "", { "dependencies": { "bson": "^6.10.3", "kareem": "2.6.3", "mongodb": "~6.14.0", "mpath": "0.9.0", "mquery": "5.0.0", "ms": "2.1.3", "sift": "17.1.3" } }, "sha512-UW22y8QFVYmrb36hm8cGncfn4ARc/XsYWQwRTaj0gxtQk1rDuhzDO1eBantS+hTTatfAIS96LlRCJrcNHvW5+Q=="],

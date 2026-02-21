@@ -1,4 +1,3 @@
-import { Types } from 'mongoose';
 import logger from '~/config/winston';
 import type * as t from '~/types';
 
@@ -9,11 +8,12 @@ const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
 
-// Factory function that takes mongoose instance and returns the methods
-export function createMemoryMethods(mongoose: typeof import('mongoose')) {
+const memoryStore = new Map<string, t.IMemoryEntryLean>();
+
+// Factory function that returns the methods
+export function createMemoryMethods() {
   /**
    * Creates a new memory entry for a user
-   * Throws an error if a memory with the same key already exists
    */
   async function createMemory({
     userId,
@@ -26,19 +26,18 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')) {
         return { ok: false };
       }
 
-      const MemoryEntry = mongoose.models.MemoryEntry;
-      const existingMemory = await MemoryEntry.findOne({ userId, key });
-      if (existingMemory) {
+      const id = `${userId}_${key}`;
+      if (memoryStore.has(id)) {
         throw new Error('Memory with this key already exists');
       }
 
-      await MemoryEntry.create({
+      memoryStore.set(id, {
         userId,
         key,
         value,
         tokenCount,
-        updated_at: new Date(),
-      });
+        updated_at: new Date().toISOString(),
+      } as any);
 
       return { ok: true };
     } catch (error) {
@@ -62,19 +61,14 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')) {
         return { ok: false };
       }
 
-      const MemoryEntry = mongoose.models.MemoryEntry;
-      await MemoryEntry.findOneAndUpdate(
-        { userId, key },
-        {
-          value,
-          tokenCount,
-          updated_at: new Date(),
-        },
-        {
-          upsert: true,
-          new: true,
-        },
-      );
+      const id = `${userId}_${key}`;
+      memoryStore.set(id, {
+        userId,
+        key,
+        value,
+        tokenCount,
+        updated_at: new Date().toISOString(),
+      } as any);
 
       return { ok: true };
     } catch (error) {
@@ -89,9 +83,9 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')) {
    */
   async function deleteMemory({ userId, key }: t.DeleteMemoryParams): Promise<t.MemoryResult> {
     try {
-      const MemoryEntry = mongoose.models.MemoryEntry;
-      const result = await MemoryEntry.findOneAndDelete({ userId, key });
-      return { ok: !!result };
+      const id = `${userId}_${key}`;
+      const ok = memoryStore.delete(id);
+      return { ok };
     } catch (error) {
       throw new Error(
         `Failed to delete memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -103,11 +97,10 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')) {
    * Gets all memory entries for a user
    */
   async function getAllUserMemories(
-    userId: string | Types.ObjectId,
+    userId: string,
   ): Promise<t.IMemoryEntryLean[]> {
     try {
-      const MemoryEntry = mongoose.models.MemoryEntry;
-      return (await MemoryEntry.find({ userId }).lean()) as t.IMemoryEntryLean[];
+      return Array.from(memoryStore.values()).filter(m => m.userId === userId);
     } catch (error) {
       throw new Error(
         `Failed to get all memories: ${error instanceof Error ? error.message : 'Unknown error'}`,
